@@ -8,18 +8,22 @@ body {
 }
 #root { max-width: 480px; margin: 0 auto; min-height: 100vh; }
 h1 { font-size: 24px; margin: 0 0 8px; }
-a { color: var(--color-primary); }
+a { color: var(--color-primary); font-weight: 600; }
 
 input, select, textarea {
   font: inherit; width: 100%; box-sizing: border-box; margin-bottom: 12px;
-  padding: 12px 16px; background: #fff;
+  padding: 12px 16px; background: #fff; color: var(--color-text);
   border: 1px solid var(--color-border); border-radius: var(--radius-md);
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--color-primary); outline-offset: 1px;
 }
 button { font: inherit; cursor: pointer; min-height: 44px; }
 form button, .btn {
   width: 100%; border: 0; border-radius: var(--radius-lg);
   background: var(--color-primary); color: #fff; font-weight: 700; padding: 14px;
 }
+form button:disabled { opacity: 0.6; cursor: wait; }
 .btn-accent { background: var(--color-accent); color: var(--color-text); }
 .link-btn { background: none; border: 0; color: var(--color-text-brand); font-weight: 600; }
 
@@ -41,3 +45,21 @@ form button, .btn {
   font-size: 12px; padding: 16px 8px; min-height: 44px; box-sizing: border-box;
 }
 .bottom-nav a.active { color: var(--color-accent); }
+
+/* Login and signup pages */
+body:has(.auth-page) { background: var(--color-bg-dark); }
+.auth-page {
+  min-height: 100vh; box-sizing: border-box; padding: 40px 20px;
+  background: var(--color-bg-dark); color: var(--color-on-dark);
+}
+.auth-brand { text-align: center; margin-bottom: 24px; }
+.auth-star { display: block; font-size: 40px; color: var(--color-accent); line-height: 1; }
+.auth-brand h1 { color: #fff; font-size: 30px; margin: 8px 0 4px; }
+.auth-brand p { margin: 0; color: var(--color-on-dark-muted); }
+.auth-card {
+  background: var(--color-bg-card); color: var(--color-text);
+  border-radius: var(--radius-xl); padding: 24px;
+}
+.auth-card h2 { margin: 0 0 16px; font-size: 20px; }
+.auth-card button { background: var(--color-accent); color: var(--color-text); }
+.auth-card p { margin: 12px 0 0; text-align: center; color: var(--color-text-muted); }
