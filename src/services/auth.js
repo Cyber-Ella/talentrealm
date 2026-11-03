@@ -1,17 +1,28 @@
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "./firebase";
 
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { auth } from './firebase'
-
-export async function registerUser({ fullName, email, password }) {
-  const userCredential = await createUserWithEmailAndPassword(
-    auth,
+export async function signUp({ name, email, password, department, level }) {
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  await updateProfile(cred.user, { displayName: name });
+  await setDoc(doc(db, "users", cred.user.uid), {
+    name,
     email,
-    password
-  )
+    department,
+    level,
+    bio: "",
+    offers: [],
+    needs: [],
+    verified: email.endsWith("@stu.unizik.edu.ng"),
+    createdAt: serverTimestamp(),
+  });
+  return cred.user;
+}
 
-  await updateProfile(userCredential.user, {
-    displayName: fullName,
-  })
-
-  return userCredential.user
+export function logIn(email, password) {
+  return signInWithEmailAndPassword(auth, email, password);
 }
