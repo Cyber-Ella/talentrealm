@@ -20,13 +20,20 @@ export default function Login() {
   };
 
   return (
-    <form onSubmit={submit}>
-      <h1>Log in</h1>
-      <input type="email" placeholder="School email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
-      <button>Log in</button>
-      <p>New here? <Link to="/signup">Create an account</Link></p>
-    </form>
+    <div className="auth-page">
+      <div className="auth-brand">
+        <span className="auth-star">★</span>
+        <h1>TalentRealm</h1>
+        <p>Find skills. Offer yours. Get what you need.</p>
+      </div>
+      <form className="auth-card" onSubmit={submit}>
+        <h2>Log in</h2>
+        <input type="email" placeholder="School email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        {error && <p style={{ color: "#8A1C1C" }}>{error}</p>}
+        <button>Log in</button>
+        <p>New here? <Link to="/signup">Create an account</Link></p>
+      </form>
+    </div>
   );
 }
