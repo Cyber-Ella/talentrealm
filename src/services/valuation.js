@@ -1,0 +1,15 @@
+export function roundTo(n, step = 100) {
+  return Math.round(n / step) * step;
+}
+
+// The proposer offers a service worth offeredValue and asks for one worth requestedValue.
+// If the requested service is worth more, the proposer pays the difference.
+// If it is worth less, the other student pays the proposer.
+export function computeTopUp({ proposerId, receiverId, offeredValue, requestedValue }) {
+  const offered = Number(offeredValue) || 0;
+  const requested = Number(requestedValue) || 0;
+  const diff = roundTo(requested - offered, 100);
+  if (diff === 0) return { amount: 0, payerId: null, payeeId: null };
+  if (diff > 0) return { amount: diff, payerId: proposerId, payeeId: receiverId };
+  return { amount: -diff, payerId: receiverId, payeeId: proposerId };
+}
