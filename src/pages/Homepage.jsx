@@ -4,6 +4,7 @@ import RefineWithGemini from "../components/RefineWithGemini";
 import { estimateValues } from "../services/gemini";
 import { computeTopUp } from "../services/valuation";
 import { proposeExchange } from "../services/exchanges";
+import DevTools from "../components/DevTools";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -106,6 +107,8 @@ function TestExchange() {
     <div className="card">
       <button className="btn" onClick={run}>Create test exchange</button>
       <p>{msg}</p>
+      <h2 style={{ fontSize: 18 }}>Matching test</h2>
+      <DevTools />
     </div>
   );
 }

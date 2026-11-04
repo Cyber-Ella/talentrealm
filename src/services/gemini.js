@@ -94,3 +94,79 @@ export async function estimateValues(offered, requested) {
     requestedReason: data.requestedReason ?? data.requested_reason ?? "",
   };
 }
+
+/* ---------- 3. Suggest matches for one student ---------- */
+
+/* ---------- 3. Suggest matches for one student ---------- */
+
+const matchSchema = Schema.object({
+  properties: {
+    matches: Schema.array({
+      items: Schema.object({
+        properties: {
+          userId: Schema.string(),
+          theyOffer: Schema.string(),
+          theirNeed: Schema.string(),
+          iOffer: Schema.string(),
+        },
+      }),
+    }),
+  },
+});
+
+const matchModel = getGenerativeModel(ai, {
+  model: MODEL_NAME,
+  generationConfig: { responseMimeType: "application/json", responseSchema: matchSchema },
+});
+
+const MATCH_INSTRUCTIONS = `You match university students on a skill-exchange platform. Students trade services (barter). This is not teaching or learning.
+Never use the words learn, teach, lesson or training.
+You get "me" (offers and needs) and "others" (userId, name, offers, needs).
+For each person in "others" who offers something I need, return one entry:
+- userId: exactly as given
+- theyOffer: the item from THEIR offers that satisfies one of MY needs (copy the text exactly)
+- theirNeed: an item from THEIR needs that one of MY offers satisfies (copy exactly), or "" if none
+- iOffer: the item from MY offers that satisfies theirNeed (copy exactly), or "" if theirNeed is ""
+Match by meaning (braids satisfies hair styling) but never invent a need that is not in their list.
+Return at most 5 entries. People with both theirNeed and iOffer filled come first.
+Data:
+`;
+
+const norm = (s) => String(s || "").trim().toLowerCase();
+const inList = (list, v) => (list || []).some((x) => norm(x) === norm(v));
+const pick = (list, v) => (list || []).find((x) => norm(x) === norm(v)) || "";
+
+export async function suggestMatches(me, others) {
+  const payload = {
+    me: { offers: me.offers || [], needs: me.needs || [] },
+    others: others.map((o) => ({ userId: o.id, name: o.name, offers: o.offers || [], needs: o.needs || [] })),
+  };
+  const result = await matchModel.generateContent(MATCH_INSTRUCTIONS + JSON.stringify(payload));
+  const raw = result.response.text();
+  console.log("Gemini matching raw:", raw);
+  const data = JSON.parse(raw);
+
+  const byId = Object.fromEntries(others.map((o) => [o.id, o]));
+  const out = [];
+  for (const m of data.matches || []) {
+    const person = byId[m.userId];
+    if (!person) continue;
+
+    const theyOffer = pick(person.offers, m.theyOffer);
+    if (!theyOffer) continue; // they must really offer it
+
+    let theirNeed = pick(person.needs, m.theirNeed);
+    let iOffer = pick(me.offers, m.iOffer);
+    if (!theirNeed || !iOffer) { theirNeed = ""; iOffer = ""; }
+
+    const first = (person.name || "They").split(" ")[0];
+    const direct = Boolean(theirNeed && iOffer);
+    const reason = direct
+      ? `${first} offers ${theyOffer}, which you need. You offer ${iOffer}, which ${first} needs. A fair trade.`
+      : `${first} offers ${theyOffer}, which you need. Nothing you offer matches what ${first} needs yet, so this could work as part of a 3-person exchange.`;
+
+    out.push({ userId: m.userId, theyOffer, theirNeed, iOffer, direct, reason });
+  }
+  out.sort((a, b) => Number(b.direct) - Number(a.direct));
+  return out.slice(0, 5);
+}
