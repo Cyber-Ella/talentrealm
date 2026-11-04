@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import RefineWithGemini from "../components/RefineWithGemini";
 import { estimateValues } from "../services/gemini";
 import { computeTopUp } from "../services/valuation";
+import { proposeExchange } from "../services/exchanges";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export default function HomePage() {
 
       <h2 style={{ fontSize: 18 }}>Value estimate test</h2>
       <TestValue />
+      <TestExchange/>
     </div>
   );
 }
@@ -82,6 +84,28 @@ function TestValue() {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+function TestExchange() {
+  const { user } = useAuth();
+  const [msg, setMsg] = useState("");
+  const run = async () => {
+    setMsg("Working…");
+    try {
+      const id = await proposeExchange({
+        proposer: { uid: user.uid, name: user.displayName },
+        receiver: { uid: "demo-amaka", name: "Amaka" },
+        offered: { title: "Hair styling and braids" },
+        requested: { title: "Product photography for 6 items" },
+      });
+      setMsg("Saved! Exchange id: " + id);
+    } catch (e) { setMsg("Error: " + e.message); }
+  };
+  return (
+    <div className="card">
+      <button className="btn" onClick={run}>Create test exchange</button>
+      <p>{msg}</p>
     </div>
   );
 }
