@@ -63,3 +63,14 @@ body:has(.auth-page) { background: var(--color-bg-dark); }
 .auth-card h2 { margin: 0 0 16px; font-size: 20px; }
 .auth-card button { background: var(--color-accent); color: var(--color-text); }
 .auth-card p { margin: 12px 0 0; text-align: center; color: var(--color-text-muted); }
+
+.muted { color: var(--color-text-muted); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tab { border: 1px solid var(--color-border); background: #fff; border-radius: 999px; padding: 10px 16px; font-weight: 600; cursor: pointer; color: var(--color-text); }
+.tab.on { background: var(--color-accent); border-color: var(--color-accent); }
+.btn-outline { background: #fff !important; color: var(--color-primary) !important; border: 1.5px solid var(--color-primary) !important; }
+.btn + .btn { margin-top: 8px; }
+.ai-note { color: var(--color-text-brand); font-weight: 700; font-size: 12px; }
+a.btn { display: block; text-align: center; text-decoration: none; box-sizing: border-box; }
+a.card { display: block; text-decoration: none; color: inherit; }
+h2 { font-size: 18px; margin: 20px 0 8px; }

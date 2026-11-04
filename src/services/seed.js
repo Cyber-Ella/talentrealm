@@ -13,18 +13,29 @@ export const DEMO_USERS = [
   { id: "demo-chisom", name: "Chisom Nwosu", department: "Architecture", level: "300",
     offers: ["Logo design", "Graphic design"], needs: ["Website design"] },
   { id: "demo-blessing", name: "Blessing Udo", department: "Music", level: "200",
-    offers: ["Singing lessons"], needs: ["Social media management"] },
+    offers: ["Live singing"], needs: ["Social media management"] },
 ];
+
+const CATEGORY = {
+  "Hair styling": "Beauty", Braids: "Beauty", "Fashion design": "Fashion", Tailoring: "Fashion",
+  Photography: "Photography", "Website design": "Technology", "Logo design": "Creative",
+  "Graphic design": "Creative", "Live singing": "Music",
+};
+const PRICE = { "Hair styling": 8000, Braids: 10000, "Fashion design": 12000, Tailoring: 6000,
+  Photography: 7000, "Website design": 15000, "Logo design": 5000, "Graphic design": 5000, "Live singing": 4000 };
 
 export async function seedDemoUsers() {
   for (const u of DEMO_USERS) {
     await setDoc(doc(db, "users", u.id), {
-      ...u,
-      email: u.id + "@demo.local",
-      bio: "",
-      verified: true,
-      createdAt: serverTimestamp(),
+      ...u, email: u.id + "@demo.local", bio: "", verified: true, createdAt: serverTimestamp(),
     });
+    for (const [i, offer] of u.offers.entries()) {
+      await setDoc(doc(db, "listings", `${u.id}-${i}`), {
+        ownerId: u.id, ownerName: u.name, title: offer, category: CATEGORY[offer] || "Other",
+        description: `${u.name.split(" ")[0]} offers ${offer.toLowerCase()} to fellow UNIZIK students.`,
+        type: "service", price: PRICE[offer] || 5000, skills: [offer], createdAt: serverTimestamp(),
+      });
+    }
   }
   return DEMO_USERS.length;
 }

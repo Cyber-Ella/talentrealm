@@ -1,116 +1,31 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import RefineWithGemini from "../components/RefineWithGemini";
-import { estimateValues } from "../services/gemini";
-import { computeTopUp } from "../services/valuation";
-import { proposeExchange } from "../services/exchanges";
 import DevTools from "../components/DevTools";
 import DevExchange from "../components/DevExchange";
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [text, setText] = useState("");
-  const [accepted, setAccepted] = useState(null);
-
   return (
     <div>
       <h1>Hello, {user.displayName}</h1>
-      <p>Explore talents, services and opportunities around you.</p>
+      <p className="muted">Trade skills with fellow UNIZIK students. Offer what you can do, get what you need.</p>
 
-      <h2 style={{ fontSize: 18 }}>Gemini test</h2>
-      <textarea
-        rows={4}
-        placeholder="e.g. i make hair, i can do braids twists and wig install"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <RefineWithGemini
-        text={text}
-        onAccept={(r) => {
-          setAccepted(r);
-          setText(r.refined);
-        }}
-      />
+      <div className="card" style={{ background: "var(--color-bg-ai)", borderColor: "var(--color-border-ai)" }}>
+        <p className="ai-note" style={{ margin: "0 0 8px" }}>✦ Suggested by Gemini</p>
+        <p style={{ margin: "0 0 12px" }}>Let Gemini find swaps and 3-person circles that work for you.</p>
+        <Link className="btn" to="/exchanges/new">Find my matches</Link>
+      </div>
 
-      {accepted && (
-        <div className="card">
-          <strong>Saved from Gemini</strong>
-          <p style={{ margin: "8px 0 0" }}>Skills: {accepted.skills.join(", ") || "none"}</p>
-          {accepted.needs.length > 0 && (
-            <p style={{ margin: "4px 0 0" }}>Needs: {accepted.needs.join(", ")}</p>
-          )}
-          <p style={{ margin: "4px 0 0" }}>Category: {accepted.category}</p>
-          <p style={{ margin: "4px 0 0" }}>Type: {accepted.type}</p>
-        </div>
-      )}
+      <h2>Quick actions</h2>
+      <Link className="btn btn-outline" to="/browse">Browse talents and services</Link>
+      <Link className="btn btn-outline" to="/listings/new">Create a listing</Link>
+      <Link className="btn btn-outline" to="/profile">Update my offers and needs</Link>
 
-      <h2 style={{ fontSize: 18 }}>Value estimate test</h2>
-      <TestValue />
-      <TestExchange/>
-    </div>
-  );
-}
-
-function TestValue() {
-  const [out, setOut] = useState(null);
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const run = async () => {
-    setErr("");
-    setBusy(true);
-    try {
-      const v = await estimateValues("Hair styling and braids", "Product photography for 6 items");
-      const top = computeTopUp({ proposerId: "ella", receiverId: "amaka", ...v });
-      setOut({ v, top });
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="card">
-      <button className="btn" onClick={run} disabled={busy}>
-        {busy ? "Estimating…" : "Test value estimate"}
-      </button>
-      {err && <p style={{ color: "crimson" }}>{err}</p>}
-      {out && (
-        <div>
-          <p>Offered: ₦{out.v.offeredValue} ({out.v.offeredReason})</p>
-          <p>Requested: ₦{out.v.requestedValue} ({out.v.requestedReason})</p>
-          <p>
-            <strong>Top-up: ₦{out.top.amount}</strong>
-            {out.top.payerId && ` from ${out.top.payerId} to ${out.top.payeeId}`}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-function TestExchange() {
-  const { user } = useAuth();
-  const [msg, setMsg] = useState("");
-  const run = async () => {
-    setMsg("Working…");
-    try {
-      const id = await proposeExchange({
-        proposer: { uid: user.uid, name: user.displayName },
-        receiver: { uid: "demo-amaka", name: "Amaka" },
-        offered: { title: "Hair styling and braids" },
-        requested: { title: "Product photography for 6 items" },
-      });
-      setMsg("Saved! Exchange id: " + id);
-    } catch (e) { setMsg("Error: " + e.message); }
-  };
-  return (
-    <div className="card">
-      <button className="btn" onClick={run}>Create test exchange</button>
-      <p>{msg}</p>
-      <h2 style={{ fontSize: 18 }}>Matching test</h2>
-      <DevTools />
-      <DevExchange />
+      <details style={{ marginTop: 24 }}>
+        <summary className="muted">Demo tools (remove before the pitch)</summary>
+        <DevTools />
+        <DevExchange />
+      </details>
     </div>
   );
 }
