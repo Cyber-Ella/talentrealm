@@ -1,7 +1,10 @@
-
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -15,8 +18,18 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 console.log("Firebase Project:", firebaseConfig.projectId);
+
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Long-polling fallback fixes slow or stuck writes on restrictive networks.
+// The local cache keeps a pending save on the device if the page is refreshed before it finishes.
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+});
+
 export const storage = getStorage(app);
 
 export default app;

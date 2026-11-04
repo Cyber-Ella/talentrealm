@@ -4,9 +4,11 @@ import { auth } from "../../services/firebase";
 import {
   getProfile,
   updateProfile,
-  uploadProfilePhoto,
+  cleanProfileChanges,
+  shrinkPhoto,
   validatePhoto,
   cleanTags,
+  saveErrorMessage,
 } from "../../services/profile";
 
 const BIO_LIMIT = 300;
@@ -21,13 +23,13 @@ const OFFER_CHIP_CLASSES = [
 function Banner() {
   return (
     <svg viewBox="0 0 340 130" className="pf-banner" aria-hidden="true">
-      <rect width="340" height="130" fill="#4B2A9B" />
-      <ellipse cx="60" cy="125" rx="150" ry="55" fill="#6A44C4" />
-      <circle cx="285" cy="40" r="55" fill="#3A1F85" />
-      <circle cx="300" cy="125" r="42" fill="#FDB82E" />
+      <rect className="pf-banner-base" width="340" height="130" />
+      <ellipse className="pf-banner-hill" cx="60" cy="125" rx="150" ry="55" />
+      <circle className="pf-banner-moon" cx="285" cy="40" r="55" />
+      <circle className="pf-banner-accent" cx="300" cy="125" r="42" />
       <path
+        className="pf-banner-accent"
         d="M205 22 L212 42 L232 49 L212 56 L205 76 L198 56 L178 49 L198 42 Z"
-        fill="#FDB82E"
       />
     </svg>
   );
@@ -40,12 +42,7 @@ function AvatarCircle({ src, name, className = "" }) {
       {src ? (
         <img src={src} alt={name ? `${name}'s photo` : "Profile photo"} />
       ) : (
-        <svg
-          viewBox="0 0 24 24"
-          fill="#8B6FD6"
-          role="img"
-          aria-label="No profile photo"
-        >
+        <svg viewBox="0 0 24 24" role="img" aria-label="No profile photo">
           <circle cx="12" cy="8" r="4.5" />
           <path d="M3.5 21c0-4.7 3.8-7.5 8.5-7.5s8.5 2.8 8.5 7.5z" />
         </svg>
@@ -131,18 +128,15 @@ function TagInput({ id, label, hint, tags, onChange, chipClass }) {
 
 /* ---------- edit form ---------- */
 
-function EditForm({ profile, onSaved, onCancel, uid }) {
+function EditForm({ profile, onSave, onCancel }) {
   const [bio, setBio] = useState(profile.bio);
   const [offers, setOffers] = useState(profile.offers);
   const [needs, setNeeds] = useState(profile.needs);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [preview, setPreview] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [photoData, setPhotoData] = useState(""); // shrunken photo, ready to save
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
-
-  function handlePhotoChange(e) {
+  async function handlePhotoChange(e) {
     const file = e.target.files?.[0];
     e.target.value = ""; // lets the same file be picked again later
     if (!file) return;
@@ -152,37 +146,28 @@ function EditForm({ profile, onSaved, onCancel, uid }) {
       return;
     }
     setError("");
-    setPhotoFile(file);
-    setPreview(URL.createObjectURL(file));
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
+    setProcessing(true);
     try {
-      const photoURL = photoFile
-        ? await uploadProfilePhoto(uid, photoFile)
-        : null;
-      const saved = await updateProfile(uid, { bio, offers, needs });
-      onSaved(photoURL ? { ...saved, photoURL } : saved);
+      setPhotoData(await shrinkPhoto(file));
     } catch (err) {
-      console.error(err);
-      setError(
-        "We couldn't save your changes. Check your connection and try again.",
-      );
+      setError(err.message);
     } finally {
-      setSaving(false);
+      setProcessing(false);
     }
   }
 
-  const hasPhoto = Boolean(profile.photoURL || preview);
+  function handleSubmit(e) {
+    e.preventDefault();
+    onSave({ bio, offers, needs, photoURL: photoData });
+  }
+
+  const hasPhoto = Boolean(profile.photoURL || photoData);
 
   return (
     <form onSubmit={handleSubmit} className="pf-form">
       <div className="pf-photo-card">
         <AvatarCircle
-          src={preview || profile.photoURL}
+          src={photoData || profile.photoURL}
           name={profile.name}
           className="pf-avatar--medium"
         />
@@ -194,12 +179,16 @@ function EditForm({ profile, onSaved, onCancel, uid }) {
             A clear photo helps people recognise you around campus.
           </p>
           <label className="pf-upload">
-            {hasPhoto ? "Choose new photo" : "Upload photo"}
+            {processing
+              ? "Preparing photo…"
+              : hasPhoto
+                ? "Choose new photo"
+                : "Upload photo"}
             <input
               type="file"
               accept="image/*"
               onChange={handlePhotoChange}
-              disabled={saving}
+              disabled={processing}
             />
           </label>
         </div>
@@ -248,15 +237,10 @@ function EditForm({ profile, onSaved, onCancel, uid }) {
       )}
 
       <div className="pf-form-actions">
-        <button type="submit" disabled={saving} className="pf-btn-primary">
-          {saving ? "Saving…" : "Save changes"}
+        <button type="submit" disabled={processing} className="pf-btn-primary">
+          Save changes
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={saving}
-          className="pf-btn-text"
-        >
+        <button type="button" onClick={onCancel} className="pf-btn-text">
           Cancel
         </button>
       </div>
@@ -336,6 +320,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [status, setStatus] = useState("loading"); // loading | ready | missing | signedout | error
   const [editing, setEditing] = useState(false);
+  const [saveState, setSaveState] = useState({ status: "idle" }); // idle | saving | saved | error
 
   // onAuthStateChanged (not auth.currentUser) so a page refresh waits for Firebase to restore the session
   useEffect(() => {
@@ -361,9 +346,28 @@ export default function ProfilePage() {
     return stop;
   }, []);
 
-  function handleSaved(saved) {
-    setProfile((p) => ({ ...p, ...saved }));
+  // Optimistic save: show the new profile straight away and sync to Firebase in the background,
+  // so a slow connection never leaves the student staring at a frozen "Saving…" button.
+  async function handleSave(values) {
+    setProfile((p) => ({ ...p, ...cleanProfileChanges(values) }));
     setEditing(false);
+    setSaveState({ status: "saving" });
+    const started = performance.now();
+    try {
+      await updateProfile(uid, values);
+      console.info(
+        `Profile saved in ${Math.round(performance.now() - started)} ms`,
+      );
+      setSaveState({ status: "saved" });
+      setTimeout(
+        () =>
+          setSaveState((s) => (s.status === "saved" ? { status: "idle" } : s)),
+        3000,
+      );
+    } catch (err) {
+      console.error(err);
+      setSaveState({ status: "error", message: saveErrorMessage(err), values });
+    }
   }
 
   return (
@@ -401,12 +405,34 @@ export default function ProfilePage() {
         </p>
       )}
 
+      {saveState.status === "saving" && (
+        <p className="pf-save-status" role="status">
+          Saving…
+        </p>
+      )}
+      {saveState.status === "saved" && (
+        <p className="pf-save-status pf-save-status--ok" role="status">
+          Saved ✓
+        </p>
+      )}
+      {saveState.status === "error" && (
+        <div className="pf-error pf-save-error" role="alert">
+          <span>Not saved yet. {saveState.message}</span>
+          <button
+            type="button"
+            className="pf-btn-text"
+            onClick={() => handleSave(saveState.values)}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
       {status === "ready" &&
         (editing ? (
           <EditForm
-            uid={uid}
             profile={profile}
-            onSaved={handleSaved}
+            onSave={handleSave}
             onCancel={() => setEditing(false)}
           />
         ) : (

@@ -3,31 +3,43 @@
 :root {
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
 
-  --color-bg-app: #F6F1FF;
-  --color-bg-card: #FFFFFF;
+  --color-bg-app: #f6f1ff;
+  --color-bg-card: #ffffff;
   --color-bg-dark: #241352;
-  --color-bg-nav: #2A1760;
-  --color-bg-ai: #EDE5FF;
-  --color-text: #1E1147;
-  --color-text-muted: #5A5470;
-  --color-text-brand: #4A2AA5;
-  --color-on-dark: #FFFFFF;
-  --color-on-dark-muted: #DCD3F5;
-  --color-primary: #4A2AA5;
-  --color-accent: #FBB82B;
-  --color-border: #E4DBF7;
-  --color-border-ai: #D3C2FA;
+  --color-bg-nav: #2a1760;
+  --color-bg-ai: #ede5ff;
+  --color-text: #1e1147;
+  --color-text-muted: #5a5470;
+  --color-text-brand: #4a2aa5;
+  --color-on-dark: #ffffff;
+  --color-on-dark-muted: #dcd3f5;
+  --color-primary: #4a2aa5;
+  --color-accent: #fbb82b;
+  --color-border: #e4dbf7;
+  --color-border-ai: #d3c2fa;
 
-  --color-pending-bg: #FFF0C7;   --color-pending-fg: #6B4A00;
-  --color-accepted-bg: #DDF3E8;  --color-accepted-fg: #17603A;
-  --color-progress-bg: #EDE5FF;  --color-progress-fg: #4A2AA5;
-  --color-awaiting-bg: #DCEBFF;  --color-awaiting-fg: #17407A;
-  --color-danger: #8A1C1C;
-  --color-danger-bg: #FDE8E8;
+  --color-pending-bg: #fff0c7;
+  --color-pending-fg: #6b4a00;
+  --color-accepted-bg: #ddf3e8;
+  --color-accepted-fg: #17603a;
+  --color-progress-bg: #ede5ff;
+  --color-progress-fg: #4a2aa5;
+  --color-awaiting-bg: #dcebff;
+  --color-awaiting-fg: #17407a;
+  --color-danger: #8a1c1c;
+  --color-danger-bg: #fde8e8;
 
-  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
-  --space-5: 20px; --space-6: 24px; --space-7: 32px;
-  --radius-md: 14px; --radius-lg: 16px; --radius-xl: 24px; --radius-full: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --radius-md: 14px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
 }
 
 /* Profile page */
@@ -37,6 +49,7 @@
   margin: 0 auto;
   background: var(--color-bg-app);
   color: var(--color-text);
+  font-family: var(--font-sans);
 }
 
 .pf-header {
@@ -82,6 +95,21 @@
   border-radius: var(--radius-lg);
 }
 
+.pf-banner-base {
+  fill: var(--color-primary);
+}
+.pf-banner-hill {
+  fill: var(--color-on-dark);
+  opacity: 0.18;
+}
+.pf-banner-moon {
+  fill: var(--color-bg-dark);
+  opacity: 0.55;
+}
+.pf-banner-accent {
+  fill: var(--color-accent);
+}
+
 .pf-avatar {
   display: flex;
   align-items: center;
@@ -98,6 +126,8 @@
 .pf-avatar svg {
   width: 60%;
   height: 60%;
+  fill: var(--color-primary);
+  opacity: 0.55;
 }
 .pf-avatar--large {
   position: relative;
@@ -368,4 +398,71 @@
   flex-direction: column;
   gap: var(--space-2);
   padding-top: var(--space-2);
+}
+/* Profile setup page */
+.profile-setup-page {
+  box-sizing: border-box;
+  max-width: 390px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-7);
+  background: var(--color-bg-app);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+.profile-setup-card {
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-card);
+}
+.profile-setup-eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-brand);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.profile-setup-title {
+  margin: 0 0 var(--space-2);
+  font-size: 22px;
+  font-weight: 700;
+}
+.profile-setup-description {
+  margin: 0 0 var(--space-5);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+.profile-setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.profile-setup-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.profile-setup-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-card);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+}
+.profile-setup-field textarea:focus {
+  border-color: var(--color-primary);
+}
+.profile-setup-field textarea::placeholder {
+  color: var(--color-text-muted);
+}
+.profile-setup-field textarea:disabled {
+  opacity: 0.6;
 }
