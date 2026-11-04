@@ -170,3 +170,100 @@ export async function suggestMatches(me, others) {
   out.sort((a, b) => Number(b.direct) - Number(a.direct));
   return out.slice(0, 5);
 }
+/* ---------- 4. Who can serve whom (used to find circles) ---------- */
+
+const edgeSchema = Schema.object({
+  properties: {
+    edges: Schema.array({
+      items: Schema.object({
+        properties: {
+          providerId: Schema.string(),
+          receiverId: Schema.string(),
+          offerIndex: Schema.number(),
+          needIndex: Schema.number(),
+        },
+      }),
+    }),
+  },
+});
+
+const edgeModel = getGenerativeModel(ai, {
+  model: MODEL_NAME,
+  generationConfig: { responseMimeType: "application/json", responseSchema: edgeSchema },
+});
+
+const EDGE_INSTRUCTIONS = `You analyse a skill-exchange platform where students trade services (barter). This is not teaching or learning.
+You get "people": each has id, offers (a list) and needs (a list).
+Return every pair where one person's offer satisfies another person's need. Match by meaning:
+braids satisfies hair styling, and photography satisfies product photography.
+Each entry:
+- providerId: the person offering
+- receiverId: the person who needs it
+- offerIndex: the zero-based position of that offer inside the provider's offers list
+- needIndex: the zero-based position of that need inside the receiver's needs list
+Never use the same person as provider and receiver.
+People:
+`;
+
+export async function findServiceEdges(people) {
+  const payload = people.map((p) => ({ id: p.id, offers: p.offers || [], needs: p.needs || [] }));
+  const result = await edgeModel.generateContent(EDGE_INSTRUCTIONS + JSON.stringify(payload));
+  const raw = result.response.text();
+  console.log("Gemini edges raw:", raw);
+  const data = JSON.parse(raw);
+
+  const byId = Object.fromEntries(people.map((p) => [p.id, p]));
+  const seen = new Set();
+  const edges = [];
+  for (const e of data.edges || []) {
+    const provider = byId[e.providerId];
+    const receiver = byId[e.receiverId];
+    if (!provider || !receiver || provider.id === receiver.id) continue;
+    const offer = (provider.offers || [])[Math.round(Number(e.offerIndex))];
+    const need = (receiver.needs || [])[Math.round(Number(e.needIndex))];
+    if (!offer || !need) continue;
+    const key = provider.id + ">" + receiver.id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    edges.push({ providerId: provider.id, receiverId: receiver.id, offer, need });
+  }
+  console.log("Edges kept:", edges);
+  return edges;
+}
+
+/* ---------- 5. Value of several services at once (for circles) ---------- */
+
+const listSchema = Schema.object({
+  properties: {
+    values: Schema.array({
+      items: Schema.object({
+        properties: { service: Schema.string(), value: Schema.number(), reason: Schema.string() },
+      }),
+    }),
+  },
+});
+
+const listModel = getGenerativeModel(ai, {
+  model: MODEL_NAME,
+  generationConfig: { responseMimeType: "application/json", responseSchema: listSchema },
+});
+
+export async function estimateServiceValues(services) {
+  const prompt = `You estimate fair prices in Nigerian naira for services exchanged between university students in Nigeria.
+Typical student jobs cost between 1000 and 20000 naira. Be conservative and round each value to the nearest 500.
+For each service in the list, return an entry in the SAME ORDER with: service (copied exactly), value (plain number), reason (one sentence about time, skill or materials).
+Services:
+` + JSON.stringify(services);
+  const result = await listModel.generateContent(prompt);
+  const raw = result.response.text();
+  console.log("Gemini list values raw:", raw);
+  const data = JSON.parse(raw);
+  const list = data.values || [];
+  if (list.length !== services.length) throw new Error("Gemini returned the wrong number of values.");
+  return list.map((v) => {
+    const n = Number(String(v.value ?? "").replace(/[^0-9.]/g, ""));
+    const value = Math.min(500000, Number.isFinite(n) ? n : 0);
+    if (!value) throw new Error("Gemini did not return a usable value for " + v.service);
+    return { value, reason: v.reason || "" };
+  });
+}
