@@ -5,6 +5,7 @@ import { estimateValues } from "../services/gemini";
 import { computeTopUp } from "../services/valuation";
 import { proposeExchange } from "../services/exchanges";
 import DevTools from "../components/DevTools";
+import DevExchange from "../components/DevExchange";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -109,6 +110,7 @@ function TestExchange() {
       <p>{msg}</p>
       <h2 style={{ fontSize: 18 }}>Matching test</h2>
       <DevTools />
+      <DevExchange />
     </div>
   );
 }
