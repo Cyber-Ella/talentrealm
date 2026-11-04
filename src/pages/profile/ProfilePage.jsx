@@ -8,7 +8,6 @@ import {
   validatePhoto,
   cleanTags,
 } from "../../services/profile";
-import "../../styles/profile.css";
 
 const BIO_LIMIT = 300;
 const OFFER_CHIP_CLASSES = [
