@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Layout from "./components/Layout";
 
+import Landing from "./pages/Landing";
 import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
 import HomePage from "./pages/HomePage";
@@ -17,12 +18,13 @@ import NotificationsPage from "./pages/notifications/NotificationsPage";
 function Protected({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <p>Loading…</p>;
-  return user ? children : <Navigate to="/login" />;
+  return user ? children : <Navigate to="/welcome" />;
 }
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/welcome" element={<Landing />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route element={<Protected><Layout /></Protected>}>
