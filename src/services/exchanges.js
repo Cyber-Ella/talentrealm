@@ -3,8 +3,8 @@ import {
   onSnapshot, query, where, serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { estimateValues } from "./gemini";
-import { computeTopUp, roundTo } from "./valuation";
+import { estimateValues, estimateServiceValues } from "./gemini";
+import { computeTopUp, roundTo, settleCircle } from "./valuation";
 
 // proposer / receiver: { uid, name }
 // offered / requested: { listingId, title }  (offered = the proposer's service)
@@ -74,4 +74,37 @@ export function watchMyExchanges(uid, callback) {
     list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     callback(list);
   });
+}
+// circle = { legs: [me to x, x to y, y to me] } from findCircles
+export async function proposeCircle({ circle, people }) {
+  const [l1, l2, l3] = circle.legs;
+  const vals = await estimateServiceValues([l1.offer, l2.offer, l3.offer]);
+
+  const members = [
+    { uid: l1.providerId, gives: vals[0].value, gets: vals[2].value },
+    { uid: l2.providerId, gives: vals[1].value, gets: vals[0].value },
+    { uid: l3.providerId, gives: vals[2].value, gets: vals[1].value },
+  ];
+  const transfers = settleCircle(members).map((t) => ({ ...t, status: "suggested" }));
+  const ids = members.map((m) => m.uid);
+
+  const ref = await addDoc(collection(db, "exchanges"), {
+    type: "circle",
+    status: "pending_approval",
+    participants: ids,
+    participantNames: Object.fromEntries(ids.map((id) => [id, people[id]?.name || "Student"])),
+    items: circle.legs.map((leg, i) => ({
+      providerId: leg.providerId,
+      receiverId: leg.receiverId,
+      title: leg.offer,
+      estimatedValue: vals[i].value,
+      reason: vals[i].reason,
+    })),
+    transfers,
+    approvals: Object.fromEntries(ids.map((id, i) => [id, i === 0 ? "accepted" : "pending"])),
+    createdBy: ids[0],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return ref.id;
 }
