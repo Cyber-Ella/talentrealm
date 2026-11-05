@@ -9,7 +9,7 @@ export async function findMatches(myId) {
   if (!me) throw new Error("User not found: " + myId);
 
   const others = people.filter(
-    (p) => p.id !== myId && ((p.offers || []).length || (p.needs || []).length)
+    (p) => p.id !== myId && ((p.offers || []).length || (p.needs || []).length),
   );
   const suggestions = await suggestMatches(me, others);
   return suggestions
