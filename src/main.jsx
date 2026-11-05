@@ -6,6 +6,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import App from "./App";
 import "./styles/tokens.css";
 import "./index.css";
+import "./styles/experience.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

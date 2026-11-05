@@ -105,7 +105,7 @@ export default function Landing() {
           aria-label="TalentRealm home"
         >
           TALENT<span>REALM</span>
-          <i>®</i>
+          
         </Link>
         <nav className="realm-header__nav" aria-label="Main navigation">
           <Link to="/discover">Discover</Link>
@@ -295,7 +295,7 @@ export default function Landing() {
       <footer className="realm-footer">
         <Link to="/welcome" className="realm-wordmark">
           TALENT<span>REALM</span>
-          <i>®</i>
+          
         </Link>
         <p>Discover. Exchange. Create.</p>
         <span>BUILT FOR THE NEXT GENERATION OF CREATORS.</span>

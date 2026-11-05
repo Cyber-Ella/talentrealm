@@ -12,6 +12,7 @@ import {
   reportProblem,
 } from "../../services/exchanges";
 import StatusChip from "../../components/StatusChip";
+import Confetti from "../../components/Confetti";
 
 const money = (n) => "₦" + Number(n || 0).toLocaleString();
 const OPEN = [
@@ -206,11 +207,7 @@ export default function ExchangeDetails() {
           I received {toConfirm.title}
         </button>
       )}
-      {ex.status === "completed" && (
-        <div className="tr-detail-panel tr-complete-panel">
-          Everyone confirmed. This exchange is complete. 🎉
-        </div>
-      )}
+      {ex.status === "completed" && <Confetti />}
 
       {OPEN.includes(ex.status) && (
         <button

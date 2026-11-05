@@ -58,7 +58,7 @@ export default function Signup() {
 
     try {
       await signUp({ ...form, interests });
-      navigate("/");
+      navigate("/onboarding");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -70,7 +70,7 @@ export default function Signup() {
       <header>
         <Link className="tr-signup-logo" to="/welcome">
           TALENT<span>REALM</span>
-          <i>®</i>
+          
         </Link>
         <Link to="/login">
           Already a member? <strong>Log in ↗</strong>

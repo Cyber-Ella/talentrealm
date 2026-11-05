@@ -83,7 +83,7 @@ function mergeEdges(primary, extra) {
 // Each leg means: providerId gives "offer" to receiverId.
 // Direct swap: legs [me to x, x to me].
 // Circle: legs [me to x, x to y, y to me].
-export async function findCircles(myId) {
+export async function findCircles(myId, { useAI = true } = {}) {
   const snap = await getDocs(collection(db, "users"));
   const people = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const active = people.filter(
@@ -96,7 +96,7 @@ export async function findCircles(myId) {
   let aiEdges = [];
   let geminiError = "";
   try {
-    aiEdges = await findServiceEdges(active);
+    if (useAI) aiEdges = await findServiceEdges(active);
   } catch (e) {
     geminiError = e.message;
   }

@@ -83,7 +83,7 @@ export default function PublicDiscover() {
       <header className="pd-top">
         <Link className="pd-logo" to="/welcome">
           TALENT<span>REALM</span>
-          <i>®</i>
+          
         </Link>
         <div className="pd-top-actions">
           <ThemeToggle />
@@ -211,7 +211,7 @@ export default function PublicDiscover() {
       <footer className="pd-footer">
         <Link className="pd-logo" to="/welcome">
           TALENT<span>REALM</span>
-          <i>®</i>
+          
         </Link>
         <span>Discover. Exchange. Create.</span>
       </footer>

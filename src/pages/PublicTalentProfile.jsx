@@ -28,7 +28,7 @@ export default function PublicTalentProfile() {
       <header className="pd-top">
         <Link className="pd-logo" to="/welcome">
           TALENT<span>REALM</span>
-          <i>®</i>
+          
         </Link>
         <div className="pd-top-actions">
           <ThemeToggle />
