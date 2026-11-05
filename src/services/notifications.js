@@ -1,6 +1,13 @@
 import {
-  addDoc, collection, doc, updateDoc, getDocs,
-  onSnapshot, query, where, serverTimestamp,
+  addDoc,
+  collection,
+  doc,
+  updateDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -10,9 +17,15 @@ export async function notify(userIds, { type, title, body, exchangeId = "" }) {
   await Promise.all(
     ids.map((userId) =>
       addDoc(collection(db, "notifications"), {
-        userId, type, title, body, exchangeId, read: false, createdAt: serverTimestamp(),
-      })
-    )
+        userId,
+        type,
+        title,
+        body,
+        exchangeId,
+        read: false,
+        createdAt: serverTimestamp(),
+      }),
+    ),
   );
 }
 
@@ -21,7 +34,9 @@ export function watchNotifications(uid, callback) {
   const q = query(collection(db, "notifications"), where("userId", "==", uid));
   return onSnapshot(q, (snap) => {
     const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    list.sort(
+      (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0),
+    );
     callback(list);
   });
 }
@@ -31,7 +46,11 @@ export function markRead(id) {
 }
 
 export async function markAllRead(uid) {
-  const q = query(collection(db, "notifications"), where("userId", "==", uid), where("read", "==", false));
+  const q = query(
+    collection(db, "notifications"),
+    where("userId", "==", uid),
+    where("read", "==", false),
+  );
   const snap = await getDocs(q);
   await Promise.all(snap.docs.map((d) => updateDoc(d.ref, { read: true })));
 }

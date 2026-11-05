@@ -1,77 +1,117 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { findCircles } from "../../services/circles";
-import { proposeExchange, proposeCircle } from "../../services/exchanges";
+import { getListings, getMyListings } from "../../services/listings";
+import { rankListingMatches } from "../../services/gemini";
+import { proposeExchange, proposePurchase } from "../../services/exchanges";
+
+const money = (n) => Number(n || 0) ? `₦${Number(n).toLocaleString()}` : "Open to exchange / free";
 
 export default function ProposeExchange() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [found, setFound] = useState(null);
+  const [need, setNeed] = useState("");
+  const [offeredId, setOfferedId] = useState("");
+  const [mode, setMode] = useState("barter");
+  const [mine, setMine] = useState([]);
+  const [catalogue, setCatalogue] = useState([]);
+  const [matches, setMatches] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [message, setMessage] = useState("");
 
-  const run = async () => {
-    setBusy(true); setMsg(""); setFound(null);
-    try { setFound(await findCircles(user.uid)); }
-    catch (e) { setMsg(e.message); }
+  useEffect(() => {
+    Promise.all([getMyListings(user.uid), getListings()])
+      .then(([own, all]) => {
+        setMine(own.filter((x) => x.type === "service"));
+        setCatalogue(all.filter((x) => ["service", "product"].includes(x.type)));
+      })
+      .catch((e) => setMessage(e.message));
+  }, [user.uid]);
+
+  const offered = useMemo(() => mine.find((x) => x.id === offeredId), [mine, offeredId]);
+
+  const search = async (e) => {
+    e.preventDefault();
+    if (!need.trim()) return setMessage("Tell us what service or product you need first.");
+    if (mode === "barter" && !offered) return setMessage("Choose one of your service listings to offer.");
+    setBusy(true); setMessage(""); setMatches(null);
+    try {
+      const ranked = await rankListingMatches({ need: need.trim(), offeredListing: offered, listings: catalogue, uid: user.uid });
+      setMatches(ranked);
+      if (!ranked.length) setMessage("No close catalogue match yet. Try a different description or browse all listings.");
+    } catch (e) { setMessage(e.message || "Matching couldn't complete. Try again."); }
     finally { setBusy(false); }
   };
 
-  const nm = (id) => found.people[id]?.name?.split(" ")[0] || "Student";
-  const leg = (l) =>
-    `${l.providerId === user.uid ? "You give" : nm(l.providerId) + " gives"} ${l.offer} to ${l.receiverId === user.uid ? "you" : nm(l.receiverId)}`;
-
-  const proposeDirect = async (d) => {
-    const [a, b] = d.legs;
-    setMsg("Gemini is estimating the values…");
+  const propose = async (listing) => {
+    if (mode === "buy") {
+      setBusy(true); setMessage("Sending purchase request…");
+      try {
+        const id = await proposePurchase({ buyer: { uid: user.uid, name: user.displayName }, seller: { uid: listing.ownerId, name: listing.ownerName }, listing });
+        navigate(`/exchanges/${id}`);
+      } catch (e) { setMessage("Couldn't send request: " + e.message); setBusy(false); }
+      return;
+    }
+    if (!offered) return;
+    setBusy(true); setMessage("Preparing your exchange proposal…");
     try {
       const id = await proposeExchange({
         proposer: { uid: user.uid, name: user.displayName },
-        receiver: { uid: a.receiverId, name: found.people[a.receiverId]?.name || "Student" },
-        offered: { title: a.offer },
-        requested: { title: b.offer },
+        receiver: { uid: listing.ownerId, name: listing.ownerName },
+        offered: { listingId: offered.id, title: offered.title, price: Number(offered.price || 0) },
+        requested: { listingId: listing.id, title: listing.title, price: Number(listing.price || 0) },
       });
-      navigate("/exchanges/" + id);
-    } catch (e) { setMsg("Error: " + e.message); }
+      navigate(`/exchanges/${id}`);
+    } catch (e) { setMessage("Couldn't create proposal: " + e.message); setBusy(false); }
   };
 
-  const proposeCirc = async (c) => {
-    setMsg("Gemini is estimating the values…");
-    try { navigate("/exchanges/" + (await proposeCircle({ circle: c, people: found.people }))); }
-    catch (e) { setMsg("Error: " + e.message); }
-  };
+  return <main className="tr-match-page tr-smart-exchange">
+    <header className="tr-match-heading">
+      <span className="tr-eyebrow">A BETTER WAY TO TRADE TALENT</span>
+      <h1>What are you <em>looking for?</em></h1>
+      <p>Tell us what you need. We'll search real TalentRealm listings and bring back people whose offers fit—not made-up matches or prices.</p>
+      <p className="tr-match-profile-note">Your own offers live in <Link to="/listings">your listings</Link>. Add one before proposing a barter.</p>
+    </header>
 
-  return (
-    <div>
-      <h1>Find my matches</h1>
-      <p className="muted">
-        We look at what you offer and what you need, find direct swaps and 3-person circles, and Gemini estimates fair values.
-      </p>
-      <p className="muted">Make sure your <Link to="/profile">offers and needs</Link> are filled in first.</p>
-      <button className="btn" onClick={run} disabled={busy}>{busy ? "Searching…" : "Find swaps and circles"}</button>
-      {msg && <p>{msg}</p>}
+    <form className="tr-smart-search" onSubmit={search}>
+      <label className="tr-listing-label">I need
+        <input value={need} onChange={(e)=>setNeed(e.target.value)} placeholder="e.g. makeup for a birthday, braids, a logo…" required />
+      </label>
+      <div className="tr-smart-mode" role="group" aria-label="Exchange type">
+        <button type="button" className={mode==="barter"?"active":""} onClick={()=>setMode("barter")}>Barter / exchange</button>
+        <button type="button" className={mode==="buy"?"active":""} onClick={()=>setMode("buy")}>Direct transaction</button>
+      </div>
+      {mode==="barter" && <label className="tr-listing-label">I can offer in return
+        <select value={offeredId} onChange={(e)=>setOfferedId(e.target.value)}>
+          <option value="">Choose one of my service listings</option>
+          {mine.map(x=><option key={x.id} value={x.id}>{x.title} · {money(x.price)}</option>)}
+        </select>
+        {!mine.length && <span className="tr-listing-field-note">You don't have a service listing yet. <Link to="/listings/new">Create one ↗</Link></span>}
+      </label>}
+      <button className="tr-match-search-button" disabled={busy}>{busy?"Finding relevant listings…":mode==="buy"?"Find listings to buy ↗":"Find exchange matches ↗"}</button>
+    </form>
 
-      {found && (
-        <div>
-          <h2>Direct swaps ({found.direct.length})</h2>
-          {found.direct.length === 0 && <p className="muted">No direct swap yet.</p>}
-          {found.direct.map((d, i) => (
-            <div className="card" key={"d" + i}>
-              {d.legs.map((l, j) => <p key={j} style={{ margin: "0 0 4px" }}>{leg(l)}</p>)}
-              <button className="btn" onClick={() => proposeDirect(d)}>Propose this swap</button>
+    {message && <p className="tr-match-message" role="status">{message}</p>}
+    {matches && <section className="tr-match-results-section">
+      <div className="tr-section-heading"><div><span className="tr-eyebrow">FROM THE TALENTREALM CATALOGUE</span><h2>Possible matches <small>({matches.length})</small></h2></div></div>
+      <p className="tr-smart-disclaimer">Gemini ranks these real listings. Listed prices are supplied by their owners; any exchange value or top-up is only a suggestion until everyone agrees.</p>
+      <div className="tr-match-results">
+        {matches.map(({listing,reason,reciprocal,reciprocalNeed})=><article className="tr-match-card tr-smart-match-card" key={listing.id}>
+          <div className="tr-smart-match-images">{listing.imageUrls?.[0]?<img src={listing.imageUrls[0]} alt={listing.title}/>:<div className="tr-smart-image-placeholder">✳</div>}</div>
+          <div className="tr-smart-match-content">
+            <span className="tr-match-type">{listing.category || "TALENT"} · {listing.ownerName || "Student"}</span>
+            <h3>{listing.title}</h3>
+            <p>{listing.description}</p>
+            <strong className="tr-smart-price">{money(listing.price)}</strong>
+            <p className="tr-smart-reason">✦ {reason}</p>
+            {reciprocal && <span className="tr-smart-reciprocal">Possible two-way fit{reciprocalNeed?`: they need ${reciprocalNeed}`:""}</span>}
+            <div className="tr-smart-card-actions">
+              {mode==="barter"?<button className="tr-match-propose" onClick={()=>propose(listing)} disabled={busy||!offered}>Propose this barter ↗</button>:<button className="tr-match-propose" onClick={()=>propose(listing)} disabled={busy}>Request direct purchase ↗</button>}
+              <Link className="tr-smart-view-link" to={`/listings/${listing.id}`}>View listing</Link>
             </div>
-          ))}
-          <h2>3-person circles ({found.circles.length})</h2>
-          {found.circles.length === 0 && <p className="muted">No circle yet.</p>}
-          {found.circles.map((c, i) => (
-            <div className="card" key={"c" + i}>
-              {c.legs.map((l, j) => <p key={j} style={{ margin: "0 0 4px" }}>{leg(l)}</p>)}
-              <button className="btn" onClick={() => proposeCirc(c)}>Propose this circle</button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+          </div>
+        </article>)}
+      </div>
+    </section>}
+  </main>;
 }

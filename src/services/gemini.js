@@ -1,5 +1,12 @@
-import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from "firebase/ai";
+import {
+  getAI,
+  getGenerativeModel,
+  GoogleAIBackend,
+  Schema,
+} from "firebase/ai";
 import app from "./firebase";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "./firebase";
 
 // If you ever get a "404" or "model not found" error, only this line needs changing.
 const MODEL_NAME = "gemini-3.5-flash-lite";
@@ -14,7 +21,17 @@ const refineSchema = Schema.object({
     skills: Schema.array({ items: Schema.string() }),
     needs: Schema.array({ items: Schema.string() }),
     category: Schema.enumString({
-      enum: ["Beauty", "Fashion", "Photography", "Food", "Music", "Technology", "Academics", "Creative", "Other"],
+      enum: [
+        "Beauty",
+        "Fashion",
+        "Photography",
+        "Food",
+        "Music",
+        "Technology",
+        "Academics",
+        "Creative",
+        "Other",
+      ],
     }),
     type: Schema.enumString({ enum: ["service", "showcase"] }),
   },
@@ -22,7 +39,10 @@ const refineSchema = Schema.object({
 
 const refineModel = getGenerativeModel(ai, {
   model: MODEL_NAME,
-  generationConfig: { responseMimeType: "application/json", responseSchema: refineSchema },
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: refineSchema,
+  },
 });
 
 const REFINE_INSTRUCTIONS = `You help UNIZIK students describe what they can do and what they need.
@@ -54,7 +74,10 @@ const valueSchema = Schema.object({
 
 const valueModel = getGenerativeModel(ai, {
   model: MODEL_NAME,
-  generationConfig: { responseMimeType: "application/json", responseSchema: valueSchema },
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: valueSchema,
+  },
 });
 
 const VALUE_INSTRUCTIONS = `You estimate fair prices in Nigerian naira for services exchanged between university students in Nigeria.
@@ -80,11 +103,20 @@ export async function estimateValues(offered, requested) {
     return Number.isFinite(n) ? n : 0;
   };
 
-  const offeredValue = Math.min(500000, num(data.offeredValue ?? data.offered_value));
-  const requestedValue = Math.min(500000, num(data.requestedValue ?? data.requested_value));
+  const offeredValue = Math.min(
+    500000,
+    num(data.offeredValue ?? data.offered_value),
+  );
+  const requestedValue = Math.min(
+    500000,
+    num(data.requestedValue ?? data.requested_value),
+  );
 
   if (!offeredValue || !requestedValue) {
-    throw new Error("Gemini did not return a usable estimate. Raw answer: " + raw.slice(0, 200));
+    throw new Error(
+      "Gemini did not return a usable estimate. Raw answer: " +
+        raw.slice(0, 200),
+    );
   }
 
   return {
@@ -94,7 +126,6 @@ export async function estimateValues(offered, requested) {
     requestedReason: data.requestedReason ?? data.requested_reason ?? "",
   };
 }
-
 
 /* ---------- 3. Suggest matches for one student ---------- */
 
@@ -115,10 +146,13 @@ const matchSchema = Schema.object({
 
 const matchModel = getGenerativeModel(ai, {
   model: MODEL_NAME,
-  generationConfig: { responseMimeType: "application/json", responseSchema: matchSchema },
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: matchSchema,
+  },
 });
 
-const MATCH_INSTRUCTIONS = `You match university students on a skill-exchange platform. Students trade services (barter). This is not teaching or learning.
+const MATCH_INSTRUCTIONS = `You match university students on a skill-exchange platform. Students trade services (barter). This is not teaching or learning. Suggestions are optional and must be grounded only in the supplied lists.
 Never use the words learn, teach, lesson or training.
 You get "me" (offers and needs) and "others" (userId, name, offers, needs).
 For each person in "others" who offers something I need, return one entry:
@@ -131,16 +165,26 @@ Return at most 5 entries. People with both theirNeed and iOffer filled come firs
 Data:
 `;
 
-const norm = (s) => String(s || "").trim().toLowerCase();
+const norm = (s) =>
+  String(s || "")
+    .trim()
+    .toLowerCase();
 const inList = (list, v) => (list || []).some((x) => norm(x) === norm(v));
 const pick = (list, v) => (list || []).find((x) => norm(x) === norm(v)) || "";
 
 export async function suggestMatches(me, others) {
   const payload = {
     me: { offers: me.offers || [], needs: me.needs || [] },
-    others: others.map((o) => ({ userId: o.id, name: o.name, offers: o.offers || [], needs: o.needs || [] })),
+    others: others.map((o) => ({
+      userId: o.id,
+      name: o.name,
+      offers: o.offers || [],
+      needs: o.needs || [],
+    })),
   };
-  const result = await matchModel.generateContent(MATCH_INSTRUCTIONS + JSON.stringify(payload));
+  const result = await matchModel.generateContent(
+    MATCH_INSTRUCTIONS + JSON.stringify(payload),
+  );
   const raw = result.response.text();
   console.log("Gemini matching raw:", raw);
   const data = JSON.parse(raw);
@@ -156,7 +200,10 @@ export async function suggestMatches(me, others) {
 
     let theirNeed = pick(person.needs, m.theirNeed);
     let iOffer = pick(me.offers, m.iOffer);
-    if (!theirNeed || !iOffer) { theirNeed = ""; iOffer = ""; }
+    if (!theirNeed || !iOffer) {
+      theirNeed = "";
+      iOffer = "";
+    }
 
     const first = (person.name || "They").split(" ")[0];
     const direct = Boolean(theirNeed && iOffer);
@@ -164,7 +211,14 @@ export async function suggestMatches(me, others) {
       ? `${first} offers ${theyOffer}, which you need. You offer ${iOffer}, which ${first} needs. A fair trade.`
       : `${first} offers ${theyOffer}, which you need. Nothing you offer matches what ${first} needs yet, so this could work as part of a 3-person exchange.`;
 
-    out.push({ userId: m.userId, theyOffer, theirNeed, iOffer, direct, reason });
+    out.push({
+      userId: m.userId,
+      theyOffer,
+      theirNeed,
+      iOffer,
+      direct,
+      reason,
+    });
   }
   out.sort((a, b) => Number(b.direct) - Number(a.direct));
   return out.slice(0, 5);
@@ -188,7 +242,10 @@ const edgeSchema = Schema.object({
 
 const edgeModel = getGenerativeModel(ai, {
   model: MODEL_NAME,
-  generationConfig: { responseMimeType: "application/json", responseSchema: edgeSchema },
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: edgeSchema,
+  },
 });
 
 const EDGE_INSTRUCTIONS = `You analyse a skill-exchange platform where students trade services (barter). This is not teaching or learning.
@@ -205,8 +262,14 @@ People:
 `;
 
 export async function findServiceEdges(people) {
-  const payload = people.map((p) => ({ id: p.id, offers: p.offers || [], needs: p.needs || [] }));
-  const result = await edgeModel.generateContent(EDGE_INSTRUCTIONS + JSON.stringify(payload));
+  const payload = people.map((p) => ({
+    id: p.id,
+    offers: p.offers || [],
+    needs: p.needs || [],
+  }));
+  const result = await edgeModel.generateContent(
+    EDGE_INSTRUCTIONS + JSON.stringify(payload),
+  );
   const raw = result.response.text();
   console.log("Gemini edges raw:", raw);
   const data = JSON.parse(raw);
@@ -224,7 +287,12 @@ export async function findServiceEdges(people) {
     const key = provider.id + ">" + receiver.id;
     if (seen.has(key)) continue;
     seen.add(key);
-    edges.push({ providerId: provider.id, receiverId: receiver.id, offer, need });
+    edges.push({
+      providerId: provider.id,
+      receiverId: receiver.id,
+      offer,
+      need,
+    });
   }
   console.log("Edges kept:", edges);
   return edges;
@@ -236,7 +304,11 @@ const listSchema = Schema.object({
   properties: {
     values: Schema.array({
       items: Schema.object({
-        properties: { service: Schema.string(), value: Schema.number(), reason: Schema.string() },
+        properties: {
+          service: Schema.string(),
+          value: Schema.number(),
+          reason: Schema.string(),
+        },
       }),
     }),
   },
@@ -244,11 +316,15 @@ const listSchema = Schema.object({
 
 const listModel = getGenerativeModel(ai, {
   model: MODEL_NAME,
-  generationConfig: { responseMimeType: "application/json", responseSchema: listSchema },
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: listSchema,
+  },
 });
 
 export async function estimateServiceValues(services) {
-  const prompt = `You estimate fair prices in Nigerian naira for services exchanged between university students in Nigeria.
+  const prompt =
+    `You estimate fair prices in Nigerian naira for services exchanged between university students in Nigeria.
 Typical student jobs cost between 1000 and 20000 naira. Be conservative and round each value to the nearest 500.
 For each service in the list, return an entry in the SAME ORDER with: service (copied exactly), value (plain number), reason (one sentence about time, skill or materials).
 Services:
@@ -258,11 +334,82 @@ Services:
   console.log("Gemini list values raw:", raw);
   const data = JSON.parse(raw);
   const list = data.values || [];
-  if (list.length !== services.length) throw new Error("Gemini returned the wrong number of values.");
+  if (list.length !== services.length)
+    throw new Error("Gemini returned the wrong number of values.");
   return list.map((v) => {
     const n = Number(String(v.value ?? "").replace(/[^0-9.]/g, ""));
     const value = Math.min(500000, Number.isFinite(n) ? n : 0);
-    if (!value) throw new Error("Gemini did not return a usable value for " + v.service);
+    if (!value)
+      throw new Error("Gemini did not return a usable value for " + v.service);
     return { value, reason: v.reason || "" };
   });
+}
+
+
+/* ---------- 5. Catalogue-first smart exchange discovery ---------- */
+const listingMatchSchema = Schema.object({
+  properties: {
+    matches: Schema.array({ items: Schema.object({ properties: {
+      listingId: Schema.string(),
+      reason: Schema.string(),
+      reciprocal: Schema.boolean(),
+      reciprocalNeed: Schema.string(),
+    }})}),
+  },
+});
+const listingMatchModel = getGenerativeModel(ai, {
+  model: MODEL_NAME,
+  generationConfig: { responseMimeType: "application/json", responseSchema: listingMatchSchema },
+});
+
+export async function rankListingMatches({ need, offeredListing, listings, uid }) {
+  const usersSnap = await getDocs(collection(db, "users"));
+  const usersById = Object.fromEntries(usersSnap.docs.map((d) => [d.id, d.data()]));
+  const candidates = listings
+    .filter((l) => l.ownerId !== uid && ["service", "product"].includes(l.type))
+    .slice(0, 80)
+    .map((l) => ({
+      id: l.id, ownerId: l.ownerId, ownerName: l.ownerName,
+      title: l.title, description: l.description, category: l.category,
+      price: Number(l.price || 0), skills: l.skills || [],
+      imageUrls: l.imageUrls || [],
+      ownerNeeds: usersById[l.ownerId]?.needs || l.ownerNeeds || l.needs || [],
+    }));
+  if (!candidates.length) return [];
+
+  const prompt = `You are the matching assistant for TalentRealm, a UNIZIK student product-and-service exchange platform.
+Rank actual catalogue listings against the student's request. Never invent a listing, owner, price, or need.
+The student needs: ${JSON.stringify(need)}
+They can offer this listing in barter: ${JSON.stringify({
+    id: offeredListing?.id || "", title: offeredListing?.title || "",
+    description: offeredListing?.description || "", price: Number(offeredListing?.price || 0),
+    category: offeredListing?.category || ""
+  })}
+Return up to 5 best listings. listingId MUST be copied from a candidate id.
+reason: one concise explanation grounded in the request and listing.
+reciprocal: true only if the listing owner appears to need what the student offers; otherwise false.
+reciprocalNeed: copy the matching owner need if present, otherwise empty.
+Candidates: ${JSON.stringify(candidates)}`;
+  try {
+    const response = await listingMatchModel.generateContent(prompt);
+    const parsed = JSON.parse(response.response.text());
+    const byId = new Map(candidates.map((l) => [l.id, l]));
+    const ranked = [];
+    for (const m of parsed.matches || []) {
+      const listing = byId.get(m.listingId);
+      if (!listing || ranked.some((x) => x.listing.id === listing.id)) continue;
+      ranked.push({ listing, reason: String(m.reason || "Relevant to your request."),
+        reciprocal: Boolean(m.reciprocal), reciprocalNeed: String(m.reciprocalNeed || "") });
+    }
+    return ranked.slice(0, 5);
+  } catch (error) {
+    console.warn("Catalogue matching fallback:", error);
+    const terms = String(need).toLowerCase().split(/[^a-z0-9]+/).filter((x) => x.length > 2);
+    return candidates.map((listing) => {
+      const hay = `${listing.title} ${listing.description} ${listing.category} ${(listing.skills||[]).join(" ")}`.toLowerCase();
+      const score = terms.filter((t) => hay.includes(t)).length;
+      return { listing, score, reciprocal: false, reciprocalNeed: "",
+        reason: score ? "Listing details overlap with your request." : "Potential category fit—review details carefully." };
+    }).filter((x) => x.score > 0).sort((a,b)=>b.score-a.score).slice(0,5);
+  }
 }

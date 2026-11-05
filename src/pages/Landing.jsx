@@ -1,80 +1,306 @@
+import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getListings } from "../services/listings";
+import ThemeToggle from "../components/ThemeToggle";
+import "../styles/landing.css";
 
-const NODES = [
-  { id: "e", name: "Ella", img: "ella", x: 150, y: 52, ly: 100 },
-  { id: "a", name: "Amaka", img: "amaka", x: 56, y: 168, ly: 214 },
-  { id: "d", name: "David", img: "david", x: 244, y: 168, ly: 214 },
+const SAMPLE_TALENTS = [
+  {
+    id: "sample-fashion",
+    title: "Fashion & styling",
+    ownerName: "Creative studio",
+    category: "Fashion",
+    type: "showcase",
+    imageUrls: [
+      "https://images.unsplash.com/photo-1539102868172-9e9f6fa7f3d3?auto=format&fit=crop&w=900&q=85",
+    ],
+  },
+  {
+    id: "sample-photo",
+    title: "Portrait photography",
+    ownerName: "Visual storyteller",
+    category: "Photography",
+    type: "service",
+    imageUrls: [
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85",
+    ],
+  },
+  {
+    id: "sample-beauty",
+    title: "Beauty artistry",
+    ownerName: "Beauty creator",
+    category: "Beauty",
+    type: "service",
+    imageUrls: [
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=85",
+    ],
+  },
+  {
+    id: "sample-design",
+    title: "Digital design",
+    ownerName: "Digital maker",
+    category: "Technology",
+    type: "showcase",
+    imageUrls: [
+      "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=900&q=85",
+    ],
+  },
 ];
+
+const HERO_IMAGES = [
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=85",
+  "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=500&q=85",
+  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=500&q=85",
+  "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=500&q=85",
+];
+
+function TalentTile({ listing, index }) {
+  const image =
+    listing.imageUrls?.[0] ||
+    listing.imageUrl ||
+    listing.coverImage ||
+    HERO_IMAGES[index % HERO_IMAGES.length];
+  return (
+    <Link
+      className={`realm-talent-tile realm-talent-tile--${index % 4}`}
+      to={`/discover`}
+      aria-label={`Explore ${listing.title}`}
+    >
+      <img src={image} alt={listing.title} loading="lazy" />
+      <div className="realm-talent-tile__caption">
+        <span>{listing.category || "Talent"}</span>
+        <strong>{listing.title}</strong>
+      </div>
+    </Link>
+  );
+}
 
 export default function Landing() {
   const { user, loading } = useAuth();
-  if (!loading && user) return <Navigate to="/" />;
+  const [talents, setTalents] = useState([]);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    getListings()
+      .then((items) => setTalents(items.slice(0, 8)))
+      .catch(() => setTalents([]));
+  }, []);
+
+  if (!loading && user) return <Navigate to="/" replace />;
+
+  const featured = talents.length ? talents : SAMPLE_TALENTS;
+  const filteredFeatured = featured.filter((item) =>
+    `${item.title} ${item.category} ${item.ownerName}`
+      .toLowerCase()
+      .includes(search.trim().toLowerCase()),
+  );
 
   return (
-    <div className="landing">
-      <div className="landing-inner">
-        <div className="landing-top"><span className="star">★</span> TalentRealm</div>
+    <main className="realm-landing">
+      <header className="realm-header">
+        <Link
+          to="/welcome"
+          className="realm-wordmark"
+          aria-label="TalentRealm home"
+        >
+          TALENT<span>REALM</span>
+          <i>®</i>
+        </Link>
+        <nav className="realm-header__nav" aria-label="Main navigation">
+          <Link to="/discover">Discover</Link>
+          <a href="#exchange">Skill exchange</a>
+          <a href="#booking">Services</a>
+        </nav>
+        <div className="realm-header__actions">
+          <ThemeToggle />
+          <Link className="realm-login" to="/login">
+            Log in
+          </Link>
+          <Link className="realm-button realm-button--small" to="/signup">
+            Join TalentRealm <span>↗</span>
+          </Link>
+        </div>
+      </header>
 
-        <section className="hero">
-          <div className="hero-copy">
-            <h1>A campus-powered community for every talent.</h1>
-            <p className="lead">
-              Trade hair styling for photography. Swap fashion design for a website. UNIZIK students trading skills, with Gemini finding fair matches.
-            </p>
-            <div className="cta">
-              <Link className="btn btn-accent" to="/signup">Get started</Link>
-              <Link className="landing-login" to="/login">I already have an account</Link>
-            </div>
-          </div>
-          <img className="landing-photo" src="/images/welcome.jpg" alt="UNIZIK students" onError={(e) => (e.currentTarget.style.display = "none")} />
-        </section>
-
-        <div className="panels">
-          <div className="panel">
-            <h2>Matches nobody could find alone</h2>
-            <p>Ella needs fashion design. Amaka needs photos. David needs a stylist. Nobody matches directly, but together they complete a circle.</p>
-            <svg viewBox="0 0 300 232" width="100%" style={{ maxWidth: 360, display: "block", margin: "0 auto" }} role="img" aria-label="Ella gives hair styling to David, David gives photography to Amaka, Amaka gives fashion design to Ella">
-              <defs>
-                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-                  <path d="M0 0L10 5L0 10z" fill="#FBB82B" />
-                </marker>
-                {NODES.map((n) => <clipPath key={n.id} id={"clip-" + n.id}><circle cx={n.x} cy={n.y} r="30" /></clipPath>)}
-              </defs>
-              <path d="M176 70 Q236 92 240 134" fill="none" stroke="#FBB82B" strokeWidth="3" markerEnd="url(#arr)" />
-              <path d="M214 184 Q150 204 86 184" fill="none" stroke="#FBB82B" strokeWidth="3" markerEnd="url(#arr)" />
-              <path d="M60 134 Q64 92 124 70" fill="none" stroke="#FBB82B" strokeWidth="3" markerEnd="url(#arr)" />
-              {NODES.map((n) => (
-                <g key={n.id}>
-                  <circle cx={n.x} cy={n.y} r="30" fill="#33206F" />
-                  <text x={n.x} y={n.y + 6} textAnchor="middle" fontSize="18" fontWeight="700" fill="#fff">{n.name[0]}</text>
-                  <image href={`/images/${n.img}.jpg`} x={n.x - 30} y={n.y - 30} width="60" height="60" preserveAspectRatio="xMidYMid slice" clipPath={`url(#clip-${n.id})`} />
-                  <circle cx={n.x} cy={n.y} r="30" fill="none" stroke="#FBB82B" strokeWidth="2" />
-                  <text x={n.x} y={n.ly} textAnchor="middle" fontSize="13" fontWeight="700" fill="#fff">{n.name}</text>
-                </g>
-              ))}
-            </svg>
-            <p><strong>Ella</strong> gives hair styling to <strong>David</strong>, who gives photography to <strong>Amaka</strong>, who gives fashion design to <strong>Ella</strong>.</p>
-          </div>
-
-          <div className="panel">
-            <h2>How it works</h2>
-            <div className="step"><b>1</b><p><strong>Tell us what you offer and need.</strong> Write it in your own words and Gemini tidies it up for you.</p></div>
-            <div className="step"><b>2</b><p><strong>Find your match.</strong> Direct swaps and 3-person circles, with a short reason for each.</p></div>
-            <div className="step"><b>3</b><p><strong>Agree and trade.</strong> Gemini suggests fair values and a small top-up if one service is worth more. You always decide.</p></div>
-          </div>
-
-          <div className="panel wide2">
-            <h2>Swap, don't pay</h2>
-            <p>No middleman and no bidding. Just students trading what they are good at.</p>
-          </div>
+      <section className="realm-hero" aria-labelledby="realm-hero-title">
+        <div className="realm-hero__glow" />
+        <div className="realm-hero__float realm-hero__float--one">
+          <img src={HERO_IMAGES[0]} alt="Student talent portrait" />
+        </div>
+        <div className="realm-hero__float realm-hero__float--two">
+          <img src={HERO_IMAGES[1]} alt="Creative student" />
+        </div>
+        <div className="realm-hero__float realm-hero__float--three">
+          <img src={HERO_IMAGES[2]} alt="Student creator" />
+        </div>
+        <div className="realm-hero__float realm-hero__float--four">
+          <img src={HERO_IMAGES[3]} alt="Creative portrait" />
         </div>
 
-        <div className="cta">
-          <Link className="btn btn-accent" to="/signup">Join TalentRealm</Link>
+        <div className="realm-hero__content">
+          <p className="realm-eyebrow">
+            <span /> THE CAMPUS TALENT NETWORK
+          </p>
+          <h1 id="realm-hero-title">
+            Your talent deserves
+            <br />
+            to be <span>discovered.</span>
+          </h1>
+          <p className="realm-hero__sub">
+            Find your people. Show what you can do. Exchange skills and book
+            talent—all in one creative community built around UNIZIK students.
+          </p>
+          <form
+            className="realm-search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              document
+                .getElementById("discover")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            <span className="realm-search__icon" aria-hidden="true">
+              ⌕
+            </span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search a talent, skill or service…"
+              aria-label="Search talents"
+            />
+            <button type="submit">
+              Search <span>↗</span>
+            </button>
+          </form>
+          <div className="realm-hero__ctas">
+            <Link to="/signup" className="realm-button">
+              Explore talents <span>↗</span>
+            </Link>
+            <a href="#exchange" className="realm-button realm-button--ghost">
+              How it works <span>↓</span>
+            </a>
+          </div>
+          <div className="realm-hero__proof">
+            <span className="realm-proof-dots">
+              <i />
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>A community built around what you can do.</span>
+          </div>
         </div>
-        <p className="landing-foot">Built for BUILDUP UNIZIK with Google Gemini and Firebase.</p>
-      </div>
-    </div>
+        <div className="realm-hero__bottom-note">
+          UNLOCK WHAT'S IN YOU <span>✳</span> FIND WHAT YOU NEED
+        </div>
+      </section>
+
+      <section className="realm-section realm-discover" id="discover">
+        <div className="realm-section__heading">
+          <div>
+            <p className="realm-eyebrow">THE PEOPLE MAKE THE PLACE</p>
+            <h2>
+              Talent is <span>everywhere.</span>
+            </h2>
+          </div>
+          <Link to="/discover" className="realm-text-link">
+            Explore the community <span>↗</span>
+          </Link>
+        </div>
+        <div className="realm-talent-grid">
+          {(search.trim() ? filteredFeatured : featured.slice(0, 4)).map(
+            (listing, index) => (
+              <TalentTile key={listing.id} listing={listing} index={index} />
+            ),
+          )}
+        </div>
+        {search.trim() && filteredFeatured.length === 0 && (
+          <p className="realm-empty">
+            No talents match “{search}” yet. Join TalentRealm to explore more.
+          </p>
+        )}
+        <div className="realm-discover__foot">
+          <span>01 — DISCOVER PEOPLE, NOT JUST SERVICES</span>
+          <Link to="/discover">See all talents ↗</Link>
+        </div>
+      </section>
+
+      <section className="realm-exchange" id="exchange">
+        <div className="realm-exchange__visual" aria-hidden="true">
+          <div className="realm-orbit realm-orbit--outer" />
+          <div className="realm-orbit realm-orbit--inner" />
+          <div className="realm-orbit__center">
+            T<span>R</span>
+          </div>
+          <span className="realm-orbit__tag realm-orbit__tag--a">DESIGN</span>
+          <span className="realm-orbit__tag realm-orbit__tag--b">PHOTO</span>
+          <span className="realm-orbit__tag realm-orbit__tag--c">MAKEUP</span>
+        </div>
+        <div className="realm-exchange__copy">
+          <p className="realm-eyebrow">VALUE GOES BOTH WAYS</p>
+          <h2>
+            What you know
+            <br />
+            can get you what
+            <br />
+            <span>you need.</span>
+          </h2>
+          <p>
+            Not everything valuable has to be paid for with money. Trade your
+            skills, meet collaborators and find fair exchanges—with AI helping
+            you see the match.
+          </p>
+          <Link className="realm-button" to="/signup">
+            Explore skill exchange <span>↗</span>
+          </Link>
+        </div>
+      </section>
+
+      <section className="realm-booking" id="booking">
+        <div>
+          <p className="realm-eyebrow">WHEN YOU NEED IT DONE</p>
+          <h2>
+            Find talent.
+            <br />
+            <span>Book brilliance.</span>
+          </h2>
+          <p>
+            From a photographer to a makeup artist, find student talent for your
+            next idea, event or project.
+          </p>
+        </div>
+        <Link className="realm-button realm-button--light" to="/signup">
+          Explore services <span>↗</span>
+        </Link>
+        <div className="realm-booking__stamp">
+          GOOD WORK
+          <br />
+          LIVES HERE <span>✳</span>
+        </div>
+      </section>
+
+      <section className="realm-join">
+        <p className="realm-eyebrow">YOUR NEXT OPPORTUNITY STARTS HERE</p>
+        <h2>
+          Come for the talent.
+          <br />
+          <span>Stay for what you create.</span>
+        </h2>
+        <Link className="realm-button" to="/signup">
+          Join TalentRealm <span>↗</span>
+        </Link>
+      </section>
+
+      <footer className="realm-footer">
+        <Link to="/welcome" className="realm-wordmark">
+          TALENT<span>REALM</span>
+          <i>®</i>
+        </Link>
+        <p>Discover. Exchange. Create.</p>
+        <span>BUILT FOR THE NEXT GENERATION OF CREATORS.</span>
+        <small>© {new Date().getFullYear()} TalentRealm</small>
+      </footer>
+    </main>
   );
 }

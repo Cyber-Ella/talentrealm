@@ -28,11 +28,25 @@ export default function Login() {
       </div>
       <form className="auth-card" onSubmit={submit}>
         <h2>Log in</h2>
-        <input type="email" placeholder="School email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <input
+          type="email"
+          placeholder="School email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
         {error && <p style={{ color: "#8A1C1C" }}>{error}</p>}
         <button>Log in</button>
-        <p>New here? <Link to="/signup">Create an account</Link></p>
+        <p>
+          New here? <Link to="/signup">Create an account</Link>
+        </p>
       </form>
     </div>
   );

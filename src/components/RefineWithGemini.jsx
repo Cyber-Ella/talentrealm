@@ -7,70 +7,32 @@ export default function RefineWithGemini({ text, onAccept }) {
   const [error, setError] = useState("");
 
   const run = async () => {
-    setBusy(true);
-    setError("");
+    setBusy(true); setError(""); setResult(null);
     try {
-      setResult(await refineDescription(text));
+      const next = await refineDescription(text);
+      if (!next?.refined?.trim()) throw new Error("Gemini returned an empty suggestion. Try again.");
+      setResult(next);
     } catch (e) {
-      console.error(e);
-      setError("Gemini error: " + (e.message || e));
-    } finally {
-      setBusy(false);
-    }
+      setError(e.message || "Could not refine this description.");
+    } finally { setBusy(false); }
   };
+  const accept = () => { onAccept(result); setResult(null); };
 
-  const accept = () => {
-    onAccept(result);
-    setResult(null);
-  };
-
-  return (
-    <div className="card" style={{ background: "var(--color-bg-ai)", borderColor: "var(--color-border-ai)" }}>
-      <p style={{ margin: "0 0 8px", fontWeight: 700, color: "var(--color-text-brand)" }}>
-        ✦ Suggested by Gemini
-      </p>
-
-      {!result && (
-        <>
-          <p style={{ margin: "0 0 12px" }}>
-            Not sure how to word it? Gemini can make it clearer. You review before saving.
-          </p>
-          <button className="btn" onClick={run} disabled={busy || text.trim().length < 10}>
-            {busy ? "Refining…" : "Refine with Gemini"}
-          </button>
-          {text.trim().length < 10 && (
-            <p style={{ margin: "8px 0 0", color: "var(--color-text-muted)" }}>
-              Write at least a short sentence first.
-            </p>
-          )}
-        </>
-      )}
-
-      {result && (
-        <>
-          <div className="card">
-            <strong>Your original</strong>
-            <p style={{ margin: "4px 0 0" }}>{text}</p>
-          </div>
-          <div className="card" style={{ borderColor: "var(--color-primary)", borderWidth: 2 }}>
-            <strong>Gemini suggestion</strong>
-            <p style={{ margin: "4px 0 0" }}>{result.refined}</p>
-          </div>
-          <p style={{ margin: "0 0 4px" }}><strong>Skills found:</strong> {result.skills.join(", ") || "none"}</p>
-          {result.needs.length > 0 && (
-            <p style={{ margin: "0 0 4px" }}><strong>Needs found:</strong> {result.needs.join(", ")}</p>
-          )}
-          <p style={{ margin: "0 0 12px" }}>
-            <strong>Suggested category:</strong> {result.category} · <strong>Type:</strong> {result.type}
-          </p>
-          <button className="btn" onClick={accept}>Use Gemini’s version</button>
-          <button className="link-btn" style={{ width: "100%" }} onClick={() => setResult(null)}>
-            Keep my original
-          </button>
-        </>
-      )}
-
-      {error && <p style={{ color: "var(--color-danger)", margin: "8px 0 0" }}>{error}</p>}
-    </div>
-  );
+  return <section className="tr-gemini-refine" aria-label="AI writing assistant">
+    <div className="tr-gemini-refine-head"><span className="tr-gemini-spark">✦</span><div><strong>Make your story clearer</strong><p>Gemini can help shape your words without changing what you mean.</p></div></div>
+    {!result ? <div className="tr-gemini-refine-actions">
+      <button className="tr-gemini-refine-run" onClick={run} disabled={busy || text.trim().length<10}>{busy?<><span className="tr-ai-spinner"/> Working on it…</>:"Refine with Gemini ↗"}</button>
+      <span>{text.trim().length<10?"Add at least 10 characters to get a suggestion.":"You stay in control. Nothing is saved until you accept."}</span>
+    </div> : <div className="tr-gemini-review">
+      <div className="tr-gemini-original"><span>YOUR WORDS</span><p>{text}</p></div>
+      <div className="tr-gemini-suggestion"><span>AN EDIT TO CONSIDER</span><p>{result.refined}</p></div>
+      <div className="tr-gemini-extracted">
+        {result.skills?.length>0&&<div><small>Skills identified</small><p>{result.skills.join(" · ")}</p></div>}
+        {result.needs?.length>0&&<div><small>What you need</small><p>{result.needs.join(" · ")}</p></div>}
+        <div><small>Suggested direction</small><p>{result.category} <span>·</span> {result.type==="showcase"?"Portfolio / showcase":"Service"}</p></div>
+      </div>
+      <div className="tr-gemini-review-actions"><button className="tr-gemini-accept" onClick={accept}>Use this suggestion</button><button className="tr-gemini-reject" onClick={()=>setResult(null)}>Keep editing</button></div>
+    </div>}
+    {error&&<p className="tr-gemini-error" role="alert">{error}</p>}
+  </section>;
 }

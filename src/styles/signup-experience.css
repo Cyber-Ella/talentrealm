@@ -1,0 +1,316 @@
+.tr-signup {
+  min-height: 100vh;
+  background: #09090b;
+  color: #f5f4f7;
+  font-family: "DM Sans", sans-serif;
+}
+.tr-signup * {
+  box-sizing: border-box;
+}
+.tr-signup a {
+  color: inherit;
+  text-decoration: none;
+}
+.tr-signup > header {
+  height: 75px;
+  border-bottom: 1px solid #242229;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(20px, 5vw, 75px);
+  font-size: 12px;
+  color: #999;
+}
+.tr-signup-logo {
+  font: 700 21px "Space Grotesk";
+  color: #fff !important;
+  letter-spacing: -1px;
+}
+.tr-signup-logo span {
+  color: #9870f8;
+}
+.tr-signup-logo i {
+  font: 8px "DM Sans";
+  vertical-align: top;
+  color: #777;
+  margin-left: 3px;
+}
+.tr-signup > header strong {
+  color: #b69aff;
+  margin-left: 5px;
+}
+.tr-signup-wrap {
+  max-width: 1250px;
+  margin: auto;
+  padding: 70px 25px 90px;
+  display: grid;
+  grid-template-columns: 0.8fr 1fr;
+  gap: clamp(45px, 8vw, 120px);
+  align-items: start;
+}
+.tr-signup-wrap aside {
+  position: sticky;
+  top: 100px;
+  padding-top: 55px;
+}
+.tr-eyebrow {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #9c96a8;
+  font-weight: 700;
+}
+.tr-signup-wrap aside h1 {
+  font: 700 clamp(45px, 6vw, 75px)/1 "Space Grotesk";
+  letter-spacing: -4px;
+  margin: 25px 0;
+}
+.tr-signup-wrap aside h1 em {
+  font-style: normal;
+  color: #9870f8;
+}
+.tr-signup-wrap aside > p:not(.tr-eyebrow) {
+  max-width: 390px;
+  color: #aaa4b2;
+  line-height: 1.8;
+  font-size: 14px;
+}
+.tr-signup-aside-note {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 70px;
+  color: #777;
+  font-size: 11px;
+}
+.tr-signup-aside-note span {
+  color: #9b73ff;
+  border: 1px solid #4b356e;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+}
+.tr-signup-form {
+  background: #111014;
+  border: 1px solid #29252f;
+  border-radius: 18px;
+  padding: clamp(22px, 4vw, 42px);
+}
+.tr-form-heading h2 {
+  font: 700 37px "Space Grotesk";
+  letter-spacing: -2px;
+  margin: 8px 0;
+}
+.tr-form-heading > p:last-child {
+  color: #898391;
+  font-size: 13px;
+  margin-top: 0;
+}
+.tr-fields {
+  display: grid;
+  gap: 15px;
+  margin: 28px 0;
+}
+.tr-fields label {
+  display: grid;
+  gap: 8px;
+  color: #c7c0d0;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tr-fields input {
+  width: 100%;
+  background: #19171d;
+  border: 1px solid #302b37;
+  border-radius: 9px;
+  padding: 14px;
+  color: #fff;
+  font: 13px "DM Sans";
+  outline: none;
+}
+.tr-fields input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+}
+.tr-fields input::placeholder {
+  color: #696372;
+}
+.tr-fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tr-goals {
+  border-top: 1px solid #2a2630;
+  padding-top: 22px;
+}
+.tr-goals h3 {
+  font: 600 18px "Space Grotesk";
+  margin: 10px 0 15px;
+}
+.tr-goals h3 small {
+  font: 400 11px "DM Sans";
+  color: #817a8b;
+}
+.tr-goal-list {
+  display: grid;
+  gap: 9px;
+}
+.tr-goal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 13px;
+  background: #17151b;
+  border: 1px solid #302b37;
+  border-radius: 10px;
+  color: #eae6f0;
+  cursor: pointer;
+}
+.tr-goal.selected {
+  border-color: #7d51d6;
+  background: rgba(113, 56, 232, 0.12);
+}
+.tr-goal-icon {
+  width: 35px;
+  height: 35px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: #25202e;
+  color: #b99aff;
+  border-radius: 8px;
+  font-size: 20px;
+}
+.tr-goal-copy {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+}
+.tr-goal-copy b {
+  font-size: 12px;
+}
+.tr-goal-copy small {
+  font-size: 10px;
+  color: #8e8799;
+  line-height: 1.4;
+}
+.tr-check {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #494151;
+  border-radius: 6px;
+  color: #dfff74;
+  font-size: 13px;
+}
+.tr-goal.selected .tr-check {
+  background: #7138e8;
+  border-color: #7138e8;
+  color: white;
+}
+.tr-submit {
+  width: 100%;
+  margin-top: 22px;
+  background: linear-gradient(110deg, #8b5cf6, #6829d8);
+  border: 0;
+  border-radius: 10px;
+  padding: 16px;
+  color: white;
+  font: 700 13px "DM Sans";
+  cursor: pointer;
+}
+.tr-submit:disabled {
+  opacity: 0.65;
+}
+.tr-signup-error {
+  color: #ff9c9c;
+  font-size: 12px;
+}
+.tr-terms {
+  text-align: center;
+  font-size: 10px;
+  color: #777080;
+  line-height: 1.6;
+}
+.tr-signup-footer {
+  border-top: 1px solid #242229;
+  padding: 24px clamp(20px, 5vw, 75px);
+  display: flex;
+  justify-content: space-between;
+  color: #777;
+  font-size: 10px;
+}
+.tr-signup-footer a {
+  color: #b59aff;
+  text-decoration: none;
+}
+@media (max-width: 800px) {
+  .tr-signup-wrap {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding-top: 30px;
+  }
+  .tr-signup-wrap aside {
+    position: static;
+    padding: 15px 0;
+  }
+  .tr-signup-wrap aside h1 {
+    font-size: 52px;
+    margin: 15px 0;
+  }
+  .tr-signup-aside-note {
+    margin-top: 25px;
+  }
+  .tr-signup-form {
+    padding: 25px;
+  }
+}
+@media (max-width: 480px) {
+  .tr-signup > header {
+    padding: 0 16px;
+  }
+  .tr-signup-logo {
+    font-size: 18px;
+  }
+  .tr-signup-wrap {
+    padding: 25px 14px 60px;
+  }
+  .tr-fields-row {
+    grid-template-columns: 1fr;
+  }
+  .tr-signup-footer {
+    padding: 20px 15px;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+}
+
+
+/* Sign-up uses the same surface and text tokens as the rest of the product */
+[data-theme="light"] .tr-signup {
+  background: var(--color-bg-app);
+  color: var(--color-text);
+}
+[data-theme="light"] .tr-signup > header {
+  background: rgb(247 247 250 / 92%);
+  border-color: var(--color-border);
+}
+[data-theme="light"] .tr-signup .tr-signup-card,
+[data-theme="light"] .tr-signup .tr-step-card,
+[data-theme="light"] .tr-signup .tr-option {
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+[data-theme="light"] .tr-signup input,
+[data-theme="light"] .tr-signup textarea,
+[data-theme="light"] .tr-signup select {
+  background: var(--color-bg-input);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
