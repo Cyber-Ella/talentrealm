@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owns(uid) { return signedIn() && request.auth.uid == uid; }
+    function safePublicProfile() {
+      return request.resource.data.keys().hasOnly([
+        'name','department','level','bio','offers','needs','interests',
+        'onboardingDone','onboardingCompleted','photoURL','portfolio','availability','createdAt'
+      ]);
+    }
+    function validListing() {
+      return request.resource.data.keys().hasOnly([
+        'ownerId','ownerName','type','title','description','category','price','skills','imageUrls','createdAt'
+      ]) && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.title is string && request.resource.data.title.size() >= 2
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.description is string && request.resource.data.description.size() <= 2000
+        && request.resource.data.price is number && request.resource.data.price >= 0
+        && request.resource.data.type in ['showcase','service','product'];
+    }
+
+    // Private account data: never public.
+    match /users/{uid} {
+      allow read: if owns(uid);
+      allow create, update: if owns(uid) && request.resource.data.keys().hasOnly([
+        'name','email','department','level','bio','offers','needs','interests',
+        'onboardingCompleted','onboardingDone','verified','createdAt','availability','portfolio','photoURL'
+      ]);
+      allow delete: if false;
+    }
+
+    // Public discoverable projection. Email and auth/security fields are excluded.
+    match /publicProfiles/{uid} {
+      allow read: if true;
+      allow create, update: if owns(uid) && safePublicProfile();
+      allow delete: if false;
+    }
+
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create: if signedIn() && validListing();
+      allow update: if signedIn() && resource.data.ownerId == request.auth.uid
+        && validListing()
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // All agreement mutations go through callable Functions (Admin SDK).
+    match /exchanges/{exchangeId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+      allow create, update, delete: if false;
+    }
+
+    match /exchangeRequests/{requestId} {
+      allow read: if resource.data.status == 'open' ||
+        (signedIn() && resource.data.ownerId == request.auth.uid);
+      allow create, update, delete: if false; // Functions validate ownership/status.
+    }
+
+    match /exchangeMatches/{matchId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+      allow write: if false; // AI match records are backend-only.
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow update: if signedIn() && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+      allow create, delete: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read: if signedIn() && resource.data.reporterId == request.auth.uid;
+      allow create, update, delete: if false; // Functions create; moderators handled server-side.
+    }
+
+    match /exchangeEvents/{eventId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+      allow write: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

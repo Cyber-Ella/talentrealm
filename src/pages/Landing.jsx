@@ -4,49 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { getListings } from "../services/listings";
 import ThemeToggle from "../components/ThemeToggle";
 import "../styles/landing.css";
-
-const SAMPLE_TALENTS = [
-  {
-    id: "sample-fashion",
-    title: "Fashion & styling",
-    ownerName: "Creative studio",
-    category: "Fashion",
-    type: "showcase",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1539102868172-9e9f6fa7f3d3?auto=format&fit=crop&w=900&q=85",
-    ],
-  },
-  {
-    id: "sample-photo",
-    title: "Portrait photography",
-    ownerName: "Visual storyteller",
-    category: "Photography",
-    type: "service",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85",
-    ],
-  },
-  {
-    id: "sample-beauty",
-    title: "Beauty artistry",
-    ownerName: "Beauty creator",
-    category: "Beauty",
-    type: "service",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=85",
-    ],
-  },
-  {
-    id: "sample-design",
-    title: "Digital design",
-    ownerName: "Digital maker",
-    category: "Technology",
-    type: "showcase",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=900&q=85",
-    ],
-  },
-];
+import "../styles/dynamic-experience.css";
 
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=85",
@@ -79,17 +37,28 @@ function TalentTile({ listing, index }) {
 export default function Landing() {
   const { user, loading } = useAuth();
   const [talents, setTalents] = useState([]);
+  const [talentLoading, setTalentLoading] = useState(true);
+  const [talentError, setTalentError] = useState(false);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
+    let active = true;
     getListings()
-      .then((items) => setTalents(items.slice(0, 8)))
-      .catch(() => setTalents([]));
+      .then((items) => {
+        if (active) setTalents(items.slice(0, 8));
+      })
+      .catch(() => {
+        if (active) setTalentError(true);
+      })
+      .finally(() => {
+        if (active) setTalentLoading(false);
+      });
+    return () => { active = false; };
   }, []);
 
   if (!loading && user) return <Navigate to="/" replace />;
 
-  const featured = talents.length ? talents : SAMPLE_TALENTS;
+  const featured = talents;
   const filteredFeatured = featured.filter((item) =>
     `${item.title} ${item.category} ${item.ownerName}`
       .toLowerCase()
@@ -208,14 +177,30 @@ export default function Landing() {
             Explore the community <span>↗</span>
           </Link>
         </div>
+        {talentLoading ? (
+          <div className="realm-talent-grid realm-talent-grid--loading" aria-live="polite">
+            {Array.from({ length: 4 }, (_, index) => <div className="realm-talent-skeleton" key={index} />)}
+          </div>
+        ) : talentError ? (
+          <div className="realm-feed-state" role="status">
+            <p>We couldn't load the talent feed right now.</p>
+            <Link to="/discover">Try exploring discovery ↗</Link>
+          </div>
+        ) : talents.length === 0 ? (
+          <div className="realm-feed-state">
+            <p>Talent profiles are taking shape here.</p>
+            <Link to="/signup">Be one of the first to showcase your talent ↗</Link>
+          </div>
+        ) : (
         <div className="realm-talent-grid">
-          {(search.trim() ? filteredFeatured : featured.slice(0, 4)).map(
+          {(search.trim() ? filteredFeatured : talents.slice(0, 4)).map(
             (listing, index) => (
               <TalentTile key={listing.id} listing={listing} index={index} />
             ),
           )}
         </div>
-        {search.trim() && filteredFeatured.length === 0 && (
+        )}
+        {search.trim() && filteredFeatured.length === 0 && !talentLoading && !talentError && talents.length > 0 && (
           <p className="realm-empty">
             No talents match “{search}” yet. Join TalentRealm to explore more.
           </p>

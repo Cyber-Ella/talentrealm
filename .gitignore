@@ -28,3 +28,10 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+node_modules/
+functions/node_modules/
+dist/
+.firebase/
+firebase-debug.log
+firestore-debug.log

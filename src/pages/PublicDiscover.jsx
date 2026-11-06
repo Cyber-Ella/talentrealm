@@ -4,65 +4,24 @@ import { getListings } from "../services/listings";
 import { photoFor } from "../components/Avatar";
 import ThemeToggle from "../components/ThemeToggle";
 import "../styles/public-discover.css";
+import "../styles/dynamic-experience.css";
 
-const sample = [
-  {
-    id: "sample-1",
-    title: "Editorial makeup",
-    ownerName: "Akunna",
-    category: "Beauty",
-    description: "Beauty looks for events, portraits and special moments.",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=85",
-    ],
-    type: "service",
-  },
-  {
-    id: "sample-2",
-    title: "Fashion & styling",
-    ownerName: "Creative studio",
-    category: "Fashion",
-    description: "Personal styling and fashion concepts.",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1539102868172-9e9f6fa7f3d3?auto=format&fit=crop&w=900&q=85",
-    ],
-    type: "showcase",
-  },
-  {
-    id: "sample-3",
-    title: "Portrait photography",
-    ownerName: "Visual storyteller",
-    category: "Photography",
-    description: "Portraits that tell your story.",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85",
-    ],
-    type: "service",
-  },
-  {
-    id: "sample-4",
-    title: "Digital design",
-    ownerName: "Digital maker",
-    category: "Technology",
-    description: "Designing bold digital experiences.",
-    imageUrls: [
-      "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&w=900&q=85",
-    ],
-    type: "showcase",
-  },
-];
 export default function PublicDiscover() {
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [sort, setSort] = useState("recent");
   useEffect(() => {
+    let active = true;
     getListings()
-      .then(setItems)
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
+      .then((results) => { if (active) setItems(results); })
+      .catch(() => { if (active) setError(true); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
-  const all = items.length ? items : sample;
+  const all = items;
   const categories = [
     "All",
     ...new Set(all.map((x) => x.category).filter(Boolean)),
@@ -126,7 +85,8 @@ export default function PublicDiscover() {
             {filtered.length} {filtered.length === 1 ? "talent" : "talents"}
           </small>
         </div>
-        <div className="pd-filters">
+        <div className="pd-toolbar">
+          <div className="pd-filters">
           {categories.map((c) => (
             <button
               key={c}
@@ -136,9 +96,32 @@ export default function PublicDiscover() {
               {c}
             </button>
           ))}
+          </div>
+          <label className="pd-sort">
+            <span>Sort</span>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort talent">
+              <option value="recent">Recently added</option>
+              <option value="title">Name A–Z</option>
+              <option value="price-low">Price: low to high</option>
+              <option value="price-high">Price: high to low</option>
+            </select>
+          </label>
         </div>
         {loading ? (
-          <div className="pd-loading">Finding talent…</div>
+          <div className="pd-grid pd-grid--loading" aria-live="polite">
+            {Array.from({ length: 8 }, (_, index) => <div className="pd-card-skeleton" key={index} />)}
+          </div>
+        ) : error ? (
+          <div className="pd-empty pd-state-error" role="alert">
+            <h3>We couldn't load discovery.</h3>
+            <p>Please refresh the page or try again in a moment.</p>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="pd-empty pd-state-empty">
+            <h3>The talent directory is just getting started.</h3>
+            <p>Be among the first students to share a skill or service.</p>
+            <Link to="/signup">Create your talent profile ↗</Link>
+          </div>
         ) : (
           <div className="pd-grid">
             {filtered.map((l, i) => {
@@ -152,7 +135,7 @@ export default function PublicDiscover() {
                 >
                   <div className="pd-card-image">
                     {image ? (
-                      <img src={image} alt={l.title} />
+                      <img src={image} alt={l.title} loading="lazy" decoding="async" />
                     ) : (
                       <div className="pd-no-image">
                         {(l.title || "T").slice(0, 1).toUpperCase()}

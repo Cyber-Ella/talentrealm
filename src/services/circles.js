@@ -84,7 +84,7 @@ function mergeEdges(primary, extra) {
 // Direct swap: legs [me to x, x to me].
 // Circle: legs [me to x, x to y, y to me].
 export async function findCircles(myId, { useAI = true } = {}) {
-  const snap = await getDocs(collection(db, "users"));
+  const snap = await getDocs(collection(db, "publicProfiles"));
   const people = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const active = people.filter(
     (p) => (p.offers || []).length || (p.needs || []).length,
