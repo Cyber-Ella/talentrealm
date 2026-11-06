@@ -20,6 +20,7 @@ export default function ListingCard({ l }) {
     .toUpperCase();
 
   const isTalent = l.type === "showcase";
+  const typeLabel = isTalent ? "Talent" : l.type === "product" ? "Product" : "Service";
 
   const price = isTalent
     ? null
@@ -39,7 +40,7 @@ export default function ListingCard({ l }) {
         )}
 
         <span className={`lcard-type ${isTalent ? "talent" : ""}`}>
-          {isTalent ? "Talent" : "Service"}
+          {typeLabel}
         </span>
       </div>
 

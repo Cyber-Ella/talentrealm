@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { createListing } from "../../services/listings";
 import RefineWithGemini from "../../components/RefineWithGemini";
+import "../../styles/listing-phase5.css";
 
 const CATEGORIES = [
   "Beauty",
@@ -62,7 +63,7 @@ export default function CreateListing() {
   const removeImage = (index) => {
     setImages((current) => current.filter((_, i) => i !== index));
   };
-  const previews = images.map((file) => URL.createObjectURL(file));
+  const previews = useMemo(() => images.map((file) => URL.createObjectURL(file)), [images]);
 
   useEffect(() => {
     return () => previews.forEach((url) => URL.revokeObjectURL(url));
@@ -71,6 +72,9 @@ export default function CreateListing() {
   const submit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!user?.uid) { setError("Sign in to publish a listing."); return; }
+    if (title.trim().length < 2) { setError("Your title needs at least 2 characters."); return; }
+    if (!description.trim()) { setError("Add a description before publishing."); return; }
     setBusy(true);
     try {
       const id = await createListing(
@@ -88,7 +92,7 @@ export default function CreateListing() {
       );
       navigate("/listings/" + id);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Listing could not be published.");
       setBusy(false);
     }
   };
@@ -134,6 +138,7 @@ export default function CreateListing() {
       </p>
       <label className="tr-listing-label">Listing title
       <input
+        maxLength={100}
         placeholder="e.g. Product photography"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -141,6 +146,7 @@ export default function CreateListing() {
       /></label>
       <label className="tr-listing-label">Description
       <textarea
+        maxLength={2000}
         rows={5}
         placeholder="Describe what you offer, in your own words"
         value={description}
@@ -203,10 +209,10 @@ export default function CreateListing() {
       <section className="tr-listing-form-section">
         <div className="tr-listing-section-title"><span>03</span><div><h2>Set the details.</h2><p>Help the right people find what you offer.</p></div></div>
         <label className="tr-listing-label">Category<select value={category} onChange={(e) => setCategory(e.target.value)}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></label>
-        {(type === "service" || type === "product") && <label className="tr-listing-label">Price in Nigerian naira<input type="number" min="0" placeholder="0 = free" value={price} onChange={(e) => setPrice(e.target.value)} /><span className="tr-listing-field-note">Leave at 0 if you're open to free requests or exchanges.</span></label>}
+        {(type === "service" || type === "product") && <label className="tr-listing-label">Price in Nigerian naira<input type="number" min="0" step="100" placeholder="0 = free" value={price} onChange={(e) => setPrice(e.target.value)} /><span className="tr-listing-field-note">Leave at 0 if you're open to free requests or exchanges.</span></label>}
       </section>
       {error && <p className="tr-listing-error" role="alert">{error}</p>}
-      <footer className="tr-listing-submit-row"><span>Your listing can be updated later.</span><button className="tr-listing-publish" disabled={busy}>{busy ? "Publishing…" : "Publish listing ↗"}</button></footer>
+      <footer className="tr-listing-submit-row"><span>{images.length}/4 images · Your listing can be updated later.</span><button className="tr-listing-publish" disabled={busy}>{busy ? "Publishing…" : "Publish listing ↗"}</button></footer>
     </form>
     </main>
   );

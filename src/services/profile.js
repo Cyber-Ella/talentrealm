@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 
 // Only these fields are allowed to cross into the public discovery document.
@@ -32,4 +32,14 @@ export async function saveProfile(uid, data) {
   if (Object.keys(safe).length) {
     await setDoc(doc(db, "publicProfiles", uid), safe, { merge: true });
   }
+}
+
+export function watchProfile(uid, callback, onError = () => {}) {
+  if (!uid) return () => {};
+  return onSnapshot(doc(db, "users", uid), (snap) => callback(snap.exists() ? snap.data() : null), onError);
+}
+
+export function watchPublicProfile(uid, callback, onError = () => {}) {
+  if (!uid) return () => {};
+  return onSnapshot(doc(db, "publicProfiles", uid), (snap) => callback(snap.exists() ? { id: snap.id, ...snap.data() } : null), onError);
 }

@@ -5,7 +5,7 @@ import { updateProfile } from "firebase/auth";
 
 import { useAuth } from "../../context/AuthContext";
 import { auth } from "../../services/firebase";
-import { getProfile, saveProfile } from "../../services/profile";
+import { watchProfile, saveProfile } from "../../services/profile";
 
 import RefineWithGemini from "../../components/RefineWithGemini";
 import ProfilePhotoUploader from "../../components/ProfilePhotoUploader";
@@ -26,27 +26,13 @@ export default function ProfilePage() {
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-
-    getProfile(user.uid)
-      .then((d) => {
-        if (!active) return;
-
-        setP(d || {});
-        setBio(d?.bio || "");
-        setOffers((d?.offers || []).join(", "));
-        setNeeds((d?.needs || []).join(", "));
-        setPortfolio(Array.isArray(d?.portfolio) ? d.portfolio : []);
-      })
-      .catch((e) => {
-        if (active) setMsg("Could not load profile: " + e.message);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [user.uid]);
+  useEffect(() => watchProfile(user.uid, (d) => {
+    setP(d || {});
+    setBio(d?.bio || "");
+    setOffers((d?.offers || []).join(", "));
+    setNeeds((d?.needs || []).join(", "));
+    setPortfolio(Array.isArray(d?.portfolio) ? d.portfolio : []);
+  }, (e) => setMsg("Could not load profile: " + e.message)), [user.uid]);
 
   // Save bio, skills and needs
   const save = async () => {

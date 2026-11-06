@@ -19,8 +19,71 @@ service cloud.firestore {
         && request.resource.data.price is number && request.resource.data.price >= 0
         && request.resource.data.type in ['showcase','service','product'];
     }
+    function validParticipants(data) {
+      return data.participants is list && data.participants.size() in [2, 3]
+        && request.auth.uid in data.participants;
+    }
+    function allAccepted(data) {
+      return data.approvals[data.participants[0]] == 'accepted'
+        && data.approvals[data.participants[1]] == 'accepted'
+        && (data.participants.size() == 2 || data.approvals[data.participants[2]] == 'accepted');
+    }
+    function validNewExchange(data) {
+      return validParticipants(data) && data.createdBy == request.auth.uid
+        && data.status == 'pending_approval'
+        && data.approvals[request.auth.uid] == 'accepted'
+        && data.items is list && data.items.size() >= 1 && data.items.size() <= 3
+        && data.items[0].providerId in data.participants && data.items[0].receiverId in data.participants
+        && (data.items.size() < 2 || (data.items[1].providerId in data.participants && data.items[1].receiverId in data.participants))
+        && (data.items.size() < 3 || (data.items[2].providerId in data.participants && data.items[2].receiverId in data.participants))
+        && data.participants[0] != data.participants[1]
+        && (data.participants.size() == 2 || (data.participants[0] != data.participants[2] && data.participants[1] != data.participants[2]))
+        && data.approvals[data.participants[0]] == (data.participants[0] == request.auth.uid ? 'accepted' : 'pending')
+        && data.approvals[data.participants[1]] == (data.participants[1] == request.auth.uid ? 'accepted' : 'pending')
+        && (data.participants.size() == 2 || data.approvals[data.participants[2]] == (data.participants[2] == request.auth.uid ? 'accepted' : 'pending'));
+    }
+    function counterApprovalsValid(data) {
+      return data.approvals[request.auth.uid] == 'accepted'
+        && (data.participants[0] == request.auth.uid || data.approvals[data.participants[0]] == 'pending')
+        && (data.participants[1] == request.auth.uid || data.approvals[data.participants[1]] == 'pending')
+        && (data.participants.size() == 2 || data.participants[2] == request.auth.uid || data.approvals[data.participants[2]] == 'pending');
+    }
+    function arrangementOwner(data) {
+      return data.items[0].providerId != data.createdBy ? data.items[0].providerId
+        : (data.items.size() > 1 ? data.items[1].providerId : data.participants[1]);
+    }
+    function allDelivered(data) {
+      return data.items.size() >= 1 && data.items.size() <= 3
+        && data.items[0].delivered == true
+        && (data.items.size() < 2 || data.items[1].delivered == true)
+        && (data.items.size() < 3 || data.items[2].delivered == true);
+    }
+    function allConfirmed(data) {
+      return data.items.size() >= 1 && data.items.size() <= 3
+        && data.items[0].confirmed == true
+        && (data.items.size() < 2 || data.items[1].confirmed == true)
+        && (data.items.size() < 3 || data.items[2].confirmed == true);
+    }
+    function validItemTransition(oldItem, newItem) {
+      return oldItem.diff(newItem).affectedKeys().hasOnly(['delivered','deliveredAt','confirmed','confirmedAt'])
+        && ((oldItem.delivered == false && newItem.delivered == true
+             && newItem.providerId == request.auth.uid
+             && newItem.deliveredAt is number
+             && oldItem.confirmed == false && newItem.confirmed == false)
+          || (oldItem.confirmed == false && newItem.confirmed == true
+             && newItem.receiverId == request.auth.uid
+             && newItem.confirmedAt is number
+             && oldItem.delivered == true && newItem.delivered == true));
+    }
+    function itemsTransitionAllowed() {
+      return request.resource.data.items is list
+        && request.resource.data.items.size() == resource.data.items.size()
+        && request.resource.data.items.size() >= 1 && request.resource.data.items.size() <= 3
+        && (resource.data.items[0] == request.resource.data.items[0] || validItemTransition(resource.data.items[0], request.resource.data.items[0]))
+        && (resource.data.items.size() < 2 || resource.data.items[1] == request.resource.data.items[1] || validItemTransition(resource.data.items[1], request.resource.data.items[1]))
+        && (resource.data.items.size() < 3 || resource.data.items[2] == request.resource.data.items[2] || validItemTransition(resource.data.items[2], request.resource.data.items[2]));
+    }
 
-    // Private account data: never public.
     match /users/{uid} {
       allow read: if owns(uid);
       allow create, update: if owns(uid) && request.resource.data.keys().hasOnly([
@@ -29,59 +92,148 @@ service cloud.firestore {
       ]);
       allow delete: if false;
     }
-
-    // Public discoverable projection. Email and auth/security fields are excluded.
     match /publicProfiles/{uid} {
       allow read: if true;
       allow create, update: if owns(uid) && safePublicProfile();
       allow delete: if false;
     }
-
     match /listings/{listingId} {
       allow read: if true;
       allow create: if signedIn() && validListing();
       allow update: if signedIn() && resource.data.ownerId == request.auth.uid
-        && validListing()
-        && request.resource.data.ownerId == resource.data.ownerId
+        && validListing() && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
 
-    // All agreement mutations go through callable Functions (Admin SDK).
+    // Spark-compatible agreements: create is validated; every later mutation is narrow and actor-bound.
     match /exchanges/{exchangeId} {
       allow read: if signedIn() && request.auth.uid in resource.data.participants;
-      allow create, update, delete: if false;
+      allow create: if signedIn() && validNewExchange(request.resource.data)
+        && request.resource.data.keys().hasOnly([
+          'type','status','participants','participantNames','items','topUp','approvals','createdBy','createdAt','updatedAt',
+          'requestId','requestSnapshot','proposal','transfers'
+        ])
+        && request.resource.data.items is list && request.resource.data.items.size() >= 1
+        && request.resource.data.items.size() <= 3;
+      allow update: if signedIn() && request.auth.uid in resource.data.participants
+        && request.resource.data.participants == resource.data.participants
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (
+          // Approve/decline only your own pending approval.
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvals','status','updatedAt'])
+            && request.resource.data.approvals.diff(resource.data.approvals).affectedKeys().hasOnly([request.auth.uid])
+            && resource.data.approvals[request.auth.uid] == 'pending'
+            && request.resource.data.approvals[request.auth.uid] in ['accepted','declined']
+            && request.resource.data.status == (request.resource.data.approvals[request.auth.uid] == 'declined' ? 'cancelled' : (allAccepted(request.resource.data) ? 'awaiting_arrangement' : 'pending_approval'))
+            && request.resource.data.updatedAt is number)
+          ||
+          // Counteroffer: actor resets their own acceptance; all others must re-approve.
+          (resource.data.type == 'direct' && resource.data.status == 'pending_approval'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['topUp','approvals','status','updatedAt'])
+            && request.resource.data.topUp.diff(resource.data.topUp).affectedKeys().hasOnly(['amount','status','proposedBy'])
+            && request.resource.data.topUp.amount is number && request.resource.data.topUp.amount >= 0 && request.resource.data.topUp.amount <= 1000000
+            && request.resource.data.topUp.proposedBy == request.auth.uid
+            && counterApprovalsValid(request.resource.data)
+            && request.resource.data.status == 'pending_approval')
+          ||
+          // Listing owner submits private meeting details after all parties accept.
+          (resource.data.status == 'awaiting_arrangement'
+            && request.auth.uid == arrangementOwner(resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['arrangement','status','updatedAt'])
+            && request.resource.data.arrangement.submittedBy == request.auth.uid
+            && request.resource.data.arrangement.location is string && request.resource.data.arrangement.location.size() > 0 && request.resource.data.arrangement.location.size() <= 120
+            && request.resource.data.arrangement.venue is string && request.resource.data.arrangement.venue.size() > 0 && request.resource.data.arrangement.venue.size() <= 160
+            && request.resource.data.arrangement.dateTime is string && request.resource.data.arrangement.dateTime.size() > 0
+            && request.resource.data.arrangement.notes is string && request.resource.data.arrangement.notes.size() <= 500
+            && request.resource.data.arrangement.status == 'pending_confirmation'
+            && request.resource.data.status == 'awaiting_confirmation')
+          ||
+          // Other participant confirms the submitted arrangement or requests changes.
+          (resource.data.status == 'awaiting_confirmation'
+            && request.auth.uid != resource.data.arrangement.submittedBy
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['arrangement','status','updatedAt'])
+            && request.resource.data.arrangement.diff(resource.data.arrangement).affectedKeys().hasOnly(['status','reviewedBy','reviewedAt','feedback'])
+            && request.resource.data.arrangement.reviewedBy == request.auth.uid
+            && request.resource.data.arrangement.reviewedAt is number
+            && request.resource.data.arrangement.status in ['confirmed','changes_requested']
+            && request.resource.data.status == (request.resource.data.arrangement.status == 'confirmed' ? 'accepted' : 'awaiting_arrangement'))
+          ||
+          // Start/cancel state transitions.
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','cancelledBy'])
+            && ((resource.data.status == 'accepted' && request.resource.data.status == 'in_progress' && !('cancelledBy' in request.resource.data))
+              || (resource.data.status in ['pending_approval','accepted'] && request.resource.data.status == 'cancelled' && request.resource.data.cancelledBy == request.auth.uid)))
+          ||
+          // Provider delivery or receiver confirmation; item identity/value fields are immutable.
+          (resource.data.status in ['in_progress','awaiting_confirmation']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['items','status','updatedAt'])
+            && itemsTransitionAllowed()
+            && request.resource.data.status == (allConfirmed(request.resource.data) ? 'completed' : (allDelivered(request.resource.data) ? 'awaiting_confirmation' : 'in_progress')))
+          ||
+          // A participant can flag that an issue was reported, but cannot edit agreement terms.
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['problemReported','updatedAt'])
+            && request.resource.data.problemReported == true)
+        );
+      allow delete: if false;
     }
 
     match /exchangeRequests/{requestId} {
-      allow read: if resource.data.status == 'open' ||
-        (signedIn() && resource.data.ownerId == request.auth.uid);
-      allow create, update, delete: if false; // Functions validate ownership/status.
+      allow read: if resource.data.status == 'open' || (signedIn() && resource.data.ownerId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'open'
+        && request.resource.data.offer is string && request.resource.data.offer.size() >= 3
+        && request.resource.data.need is string && request.resource.data.need.size() >= 3
+        && request.resource.data.keys().hasOnly(['ownerId','ownerName','offer','need','description','allowTopUp','status','createdAt','updatedAt']);
+      allow update: if signedIn() && resource.data.ownerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && resource.data.status != 'fulfilled'
+        && request.resource.data.status in ['open','paused','closed','fulfilled'];
+      allow delete: if false;
     }
-
     match /exchangeMatches/{matchId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.participants;
-      allow write: if false; // AI match records are backend-only.
-    }
-
-    match /notifications/{notificationId} {
-      allow read: if signedIn() && resource.data.userId == request.auth.uid;
-      allow update: if signedIn() && resource.data.userId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
-        && request.resource.data.read is bool;
-      allow create, delete: if false;
-    }
-
-    match /reports/{reportId} {
-      allow read: if signedIn() && resource.data.reporterId == request.auth.uid;
-      allow create, update, delete: if false; // Functions create; moderators handled server-side.
-    }
-
-    match /exchangeEvents/{eventId} {
       allow read: if signedIn() && request.auth.uid in resource.data.participants;
       allow write: if false;
     }
-
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.userId is string
+        && request.resource.data.userId != request.auth.uid
+        && request.auth.uid in request.resource.data.participants
+        && request.resource.data.userId in request.resource.data.participants
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.exchangeId is string
+        && request.resource.data.participants == get(/databases/$(database)/documents/exchanges/$(request.resource.data.exchangeId)).data.participants
+        && request.resource.data.type in ['exchange_proposed','purchase_requested','exchange_accepted','exchange_declined','exchange_started','item_delivered','delivery_confirmed','arrangement_submitted','arrangement_confirmed','arrangement_changes_requested']
+        && request.resource.data.title is string && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string && request.resource.data.body.size() <= 500
+        && request.resource.data.read == false
+        && request.resource.data.createdAt is number
+        && request.resource.data.keys().hasOnly(['userId','actorId','exchangeId','participants','type','title','body','read','createdAt']);
+      allow update: if signedIn() && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+      allow delete: if false;
+    }
+    match /reports/{reportId} {
+      allow read: if signedIn() && resource.data.reporterId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == 'open'
+        && request.resource.data.exchangeId is string
+        && request.auth.uid in get(/databases/$(database)/documents/exchanges/$(request.resource.data.exchangeId)).data.participants
+        && request.resource.data.keys().hasOnly(['exchangeId','reporterId','participants','text','status','createdAt']);
+      allow update, delete: if false;
+    }
+    match /exchangeEvents/{eventId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+      allow create: if signedIn() && request.resource.data.actorId == request.auth.uid
+        && request.auth.uid in request.resource.data.participants
+        && request.resource.data.exchangeId is string
+        && request.resource.data.participants == get(/databases/$(database)/documents/exchanges/$(request.resource.data.exchangeId)).data.participants
+        && request.resource.data.keys().hasOnly(['exchangeId','participants','actorId','type','details','createdAt']);
+      allow update, delete: if false;
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }

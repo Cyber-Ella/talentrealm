@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getListings } from "../services/listings";
+import { watchListings } from "../services/listings";
 import { photoFor } from "../components/Avatar";
 import ThemeToggle from "../components/ThemeToggle";
 import "../styles/public-discover.css";
@@ -13,14 +13,9 @@ export default function PublicDiscover() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [sort, setSort] = useState("recent");
-  useEffect(() => {
-    let active = true;
-    getListings()
-      .then((results) => { if (active) setItems(results); })
-      .catch(() => { if (active) setError(true); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
+  useEffect(() => watchListings((results) => {
+    setItems(results); setLoading(false);
+  }, () => { setError(true); setLoading(false); }), []);
   const all = items;
   const categories = [
     "All",

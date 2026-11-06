@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getListings } from "../services/listings";
+import { watchListings } from "../services/listings";
 import ThemeToggle from "../components/ThemeToggle";
 import "../styles/landing.css";
 import "../styles/dynamic-experience.css";
@@ -41,20 +41,13 @@ export default function Landing() {
   const [talentError, setTalentError] = useState(false);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    getListings()
-      .then((items) => {
-        if (active) setTalents(items.slice(0, 8));
-      })
-      .catch(() => {
-        if (active) setTalentError(true);
-      })
-      .finally(() => {
-        if (active) setTalentLoading(false);
-      });
-    return () => { active = false; };
-  }, []);
+  useEffect(() => watchListings((items) => {
+    setTalents(items.slice(0, 8));
+    setTalentLoading(false);
+  }, () => {
+    setTalentError(true);
+    setTalentLoading(false);
+  }), []);
 
   if (!loading && user) return <Navigate to="/" replace />;
 
