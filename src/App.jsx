@@ -8,6 +8,7 @@ import { SkeletonGrid } from "./components/Skeleton";
 import Landing from "./pages/Landing";
 import PublicDiscover from "./pages/PublicDiscover";
 import PublicTalentProfile from "./pages/PublicTalentProfile";
+import PublicStudentProfile from "./pages/PublicStudentProfile";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
 
@@ -48,6 +49,7 @@ function PublicRoutes() {
       <Route path="/welcome" element={<Landing />} />
       <Route path="/discover" element={<PublicDiscover />} />
       <Route path="/talent/:id" element={<PublicTalentProfile />} />
+      <Route path="/students/:uid" element={<PublicStudentProfile />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
     </>
@@ -70,6 +72,7 @@ export default function App() {
       <Route path="/welcome" element={<Landing />} />
       <Route path="/discover" element={<PublicDiscover />} />
       <Route path="/talent/:id" element={<PublicTalentProfile />} />
+      <Route path="/students/:uid" element={<PublicStudentProfile />} />
 
       {/* Authentication */}
       <Route path="/signup" element={<Signup />} />

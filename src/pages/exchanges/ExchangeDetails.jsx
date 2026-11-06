@@ -10,6 +10,8 @@ import {
   confirmDelivery,
   cancelExchange,
   reportProblem,
+  submitArrangement,
+  reviewArrangement,
 } from "../../services/exchanges";
 import StatusChip from "../../components/StatusChip";
 import Confetti from "../../components/Confetti";
@@ -30,6 +32,8 @@ export default function ExchangeDetails() {
   const [busy, setBusy] = useState(false);
   const [counter, setCounter] = useState("");
   const [report, setReport] = useState("");
+  const [meeting, setMeeting] = useState({ location: "", venue: "", dateTime: "", notes: "" });
+  const [reviewNote, setReviewNote] = useState("");
 
   useEffect(() => watchExchange(id, setEx), [id]);
 
@@ -177,6 +181,22 @@ export default function ExchangeDetails() {
           </button>
         </div>
       )}
+      {ex.status === "awaiting_arrangement" && (() => {
+        const arranger = ex.items.find((item) => item.listingId && item.providerId !== ex.createdBy)?.providerId || ex.participants.find((p) => p !== ex.createdBy);
+        return arranger === uid ? <section className="tr-detail-panel" style={{ marginTop: 16 }}>
+          <h3>Arrange your meeting</h3><p className="muted">Share a proposed location and time. The other student must confirm before the exchange can begin.</p>
+          <label>General location (area/campus) *</label><input value={meeting.location} onChange={(e) => setMeeting({ ...meeting, location: e.target.value })} placeholder="e.g. UNIZIK Awka campus" />
+          <label>Specific meeting place *</label><input value={meeting.venue} onChange={(e) => setMeeting({ ...meeting, venue: e.target.value })} placeholder="e.g. Library entrance" />
+          <label>Proposed date and time *</label><input type="datetime-local" value={meeting.dateTime} onChange={(e) => setMeeting({ ...meeting, dateTime: e.target.value })} />
+          <label>Additional instructions (optional)</label><textarea rows={3} value={meeting.notes} onChange={(e) => setMeeting({ ...meeting, notes: e.target.value })} placeholder="Any details the other student should know" />
+          <button className="btn btn-accent" disabled={busy || !meeting.location.trim() || !meeting.venue.trim() || !meeting.dateTime} onClick={() => act(() => submitArrangement(id, meeting), "Arrangement sent for confirmation.")}>Submit arrangement</button>
+        </section> : <p className="ai-note">Waiting for the listing owner to submit the meeting arrangement.</p>;
+      })()}
+      {ex.status === "awaiting_confirmation" && ex.arrangement && <section className="tr-detail-panel" style={{ marginTop: 16 }}>
+        <h3>Proposed meeting arrangement</h3><p><strong>Location:</strong> {ex.arrangement.location}</p><p><strong>Place:</strong> {ex.arrangement.venue}</p><p><strong>Date & time:</strong> {ex.arrangement.dateTime}</p>{ex.arrangement.notes && <p><strong>Notes:</strong> {ex.arrangement.notes}</p>}
+        {ex.arrangement.feedback && <p className="muted">Review note: {ex.arrangement.feedback}</p>}
+        {ex.arrangement.submittedBy !== uid ? <><label>Request changes (optional note)</label><textarea rows={2} value={reviewNote} onChange={(e) => setReviewNote(e.target.value)} placeholder="What should be adjusted?"/><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button className="btn btn-accent" disabled={busy} onClick={() => act(() => reviewArrangement(id, uid, "confirm"), "Arrangement confirmed. You can now begin the exchange.")}>Confirm arrangement</button><button className="btn btn-outline" disabled={busy} onClick={() => act(() => reviewArrangement(id, uid, "changes", reviewNote), "Changes requested.")}>Request changes</button></div></> : <p className="muted">Waiting for the other participant to confirm these details.</p>}
+      </section>}
       {ex.status === "accepted" && (
         <button
           className="btn btn-accent"

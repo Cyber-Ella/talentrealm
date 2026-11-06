@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getMyListings, deleteListing } from "../services/listings";
+import { watchMyListings, deleteListing } from "../services/listings";
 import { SkeletonGrid } from "./Skeleton";
 
 export default function MyListings() {
@@ -11,24 +11,16 @@ export default function MyListings() {
   const [busyId, setBusyId] = useState(null);
   const [msg, setMsg] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    getMyListings(user.uid)
-      .then((l) => active && setList(l))
-      .catch((e) => {
-        if (!active) return;
-        setList([]);
-        setMsg("Could not load your listings: " + e.message);
-      });
-    return () => { active = false; };
-  }, [user.uid]);
+  useEffect(() => watchMyListings(user.uid, setList, (e) => {
+    setList([]);
+    setMsg("Could not load your listings: " + e.message);
+  }), [user.uid]);
 
   const remove = async (l) => {
     setBusyId(l.id);
     setMsg("");
     try {
       await deleteListing(l.id, user.uid);
-      setList((cur) => cur.filter((x) => x.id !== l.id));
       setMsg(`"${l.title}" was deleted.`);
       setConfirmId(null);
     } catch (e) {

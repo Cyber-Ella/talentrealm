@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { getListing, getMyListings, deleteListing } from "../../services/listings";
-import { proposeExchange } from "../../services/exchanges";
+import { watchListing, watchMyListings, deleteListing, getListings } from "../../services/listings";
+import { getPublicProfile } from "../../services/profile";
+import { proposeExchange, proposePurchase } from "../../services/exchanges";
 
 export default function ListingDetails() {
   const { id } = useParams();
@@ -14,15 +15,28 @@ export default function ListingDetails() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [ownerProfile, setOwnerProfile] = useState(null);
+  const [ownerListings, setOwnerListings] = useState([]);
 
   useEffect(() => {
-    getListing(id).then(setL);
-    getMyListings(user.uid).then((list) => {
+    setL(undefined);
+    const stopListing = watchListing(id, setL, (e) => setMsg("Listing stream error: " + e.message));
+    const stopMine = watchMyListings(user.uid, (list) => {
       const services = list.filter((x) => x.type === "service");
       setMine(services);
-      if (services[0]) setPick(services[0].id);
-    });
+      setPick((current) => current || services[0]?.id || "");
+    }, (e) => setMsg("Could not load your services: " + e.message));
+    return () => { stopListing(); stopMine(); };
   }, [id, user.uid]);
+
+  useEffect(() => {
+    if (!l?.ownerId) return;
+    let active = true;
+    Promise.all([getPublicProfile(l.ownerId), getListings({ ownerId: l.ownerId })])
+      .then(([profile, listings]) => { if (active) { setOwnerProfile(profile); setOwnerListings(listings.filter((x) => x.id !== l.id)); } })
+      .catch((e) => console.warn("Could not load listing owner preview", e));
+    return () => { active = false; };
+  }, [l?.ownerId, l?.id]);
 
   if (l === undefined) return <p>Loading…</p>;
   if (l === null) return <p>Listing not found.</p>;
@@ -50,6 +64,14 @@ export default function ListingDetails() {
     }
   };
 
+  const purchaseRequest = async () => {
+    setBusy(true); setMsg("Sending service request…");
+    try {
+      const exId = await proposePurchase({ buyer: user, seller: { uid: l.ownerId }, listing: l });
+      navigate("/exchanges/" + exId);
+    } catch (e) { setMsg("Error: " + e.message); setBusy(false); }
+  };
+
   const remove = async () => {
     setBusy(true);
     setMsg("");
@@ -66,9 +88,26 @@ export default function ListingDetails() {
     <div>
       <h1>{l.title}</h1>
 
-      <p className="muted">
-        {l.ownerName} · {l.category}
-      </p>
+      <p className="muted">{l.category}</p>
+
+      <section className="card" style={{ display: "flex", gap: 14, alignItems: "center", margin: "16px 0" }}>
+        {ownerProfile?.photoURL ? <img src={ownerProfile.photoURL} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover" }} /> : <div aria-hidden="true" style={{ width: 64, height: 64, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--color-surface, #eee)", fontSize: 22 }}>{(ownerProfile?.name || l.ownerName || "T").slice(0,1).toUpperCase()}</div>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong>{ownerProfile?.name || l.ownerName || "TalentRealm member"}</strong>
+          <p className="muted" style={{ margin: "4px 0" }}>{ownerProfile?.department || "UNIZIK student"}{ownerProfile?.level ? ` · ${ownerProfile.level} Level` : ""}</p>
+          {ownerProfile?.bio && <p style={{ margin: "4px 0", fontSize: "0.9rem" }}>{ownerProfile.bio}</p>}
+          <Link to={`/students/${l.ownerId}`}>View full profile ↗</Link>
+        </div>
+      </section>
+      {ownerListings.length > 0 && <section style={{ margin: "20px 0" }}>
+        <h2>More from {ownerProfile?.name?.split(" ")[0] || l.ownerName?.split(" ")[0]}</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
+          {ownerListings.slice(0,4).map((item) => <Link key={item.id} to={`/listings/${item.id}`} className="card" style={{ textDecoration: "none" }}>
+            {item.imageUrls?.[0] && <img src={item.imageUrls[0]} alt="" style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8 }} />}
+            <strong>{item.title}</strong><p className="muted" style={{ margin: "4px 0" }}>{item.category || item.type}</p>
+          </Link>)}
+        </div>
+      </section>}
 
       {imageUrls.length > 0 && (
         <div className="listing-gallery">
@@ -125,7 +164,12 @@ export default function ListingDetails() {
 
       {!isMine && l.type === "service" && (
         <div className="card">
-          <strong>Propose an exchange</strong>
+          {Number(l.price) > 0 && <div style={{marginBottom:12}}>
+            <strong>Want to book this service?</strong>
+            <p className="muted" style={{margin:"4px 0 8px"}}>Send a request at the listed price. Payment is arranged directly with the provider; TalentRealm does not process payments.</p>
+            <button className="btn btn-accent" onClick={purchaseRequest} disabled={busy}>{busy ? "Sending…" : `Request service · ₦${Number(l.price).toLocaleString()}`}</button>
+          </div>}
+          <strong>Or propose an exchange</strong>
 
           <p className="muted" style={{ margin: "4px 0 12px" }}>
             Trade one of your services for this one.

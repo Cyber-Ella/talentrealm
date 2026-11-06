@@ -1,14 +1,20 @@
 import { useEffect,useState } from "react";
 import { Link,useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getListings } from "../services/listings";
+import { watchListings } from "../services/listings";
 import ListingCard from "../components/ListingCard";
 import { SkeletonGrid } from "../components/Skeleton";
 
 const stories=["Your talent","Sophia Lee","James Carter","Olivia Bennett","Daniel Kim","Mia Rodriguez"];
 export default function HomePage(){
  const {user}=useAuth();const navigate=useNavigate();const [listings,setListings]=useState([]);const [loading,setLoading]=useState(true);const [postText,setPostText]=useState("");
- useEffect(()=>{let live=true;(async()=>{try{const all=await getListings();if(live)setListings(all.filter(x=>x.ownerId!==user?.uid).slice(0,6));}catch(e){console.error("Could not load feed listings",e)}finally{if(live)setLoading(false)}})();return()=>{live=false}},[user?.uid]);
+useEffect(() => watchListings((all) => {
+  setListings(all.slice(0, 6));
+  setLoading(false);
+}, (e) => {
+  console.error("Could not load feed listings", e);
+  setLoading(false);
+}), []);
 const first=(user?.displayName||"there").split(" ")[0];const initials=(user?.displayName||"TR").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();
  return <div className="tr-feed-page">
   <section className="tr-feed-stories"><div className="tr-feed-section-title"><h2>Talent stories</h2><Link to="/browse">View all ↗</Link></div><div className="tr-stories-row"><Link to="/listings/new" className="tr-story tr-story-add"><span className="tr-story-ring"><b>＋</b></span><small>Add your talent</small></Link>{stories.slice(1).map((s,i)=><Link to="/browse" className="tr-story" key={s}><span className={`tr-story-ring tr-story-color-${i}`}><b>{s.split(" ").map(x=>x[0]).join("")}</b><i>✦</i></span><small>{s}</small></Link>)}</div></section>

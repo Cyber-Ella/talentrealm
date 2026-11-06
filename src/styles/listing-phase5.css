@@ -1,0 +1,8 @@
+
+/* Phase 6 exchange request composer */
+.tr-request-form{display:grid;gap:12px;max-width:720px}
+.tr-request-form label{display:grid;gap:6px;font-weight:600}
+.tr-request-form input:not([type=checkbox]),.tr-request-form textarea{width:100%;padding:11px 12px;border:1px solid var(--border,#34343b);border-radius:10px;background:var(--surface,#202025);color:inherit;font:inherit}
+.tr-request-form .tr-request-check{display:flex;align-items:center;gap:9px;font-weight:500}
+.tr-request-form .tr-request-check input{width:auto}
+.tr-open-requests{display:grid;gap:10px}.tr-open-requests .tr-detail-item{display:flex;align-items:center;justify-content:space-between;gap:16px}.tr-open-requests p{margin:5px 0}.tr-open-requests small{color:var(--accent,#9870f8)}@media(max-width:600px){.tr-open-requests .tr-detail-item{align-items:flex-start;flex-direction:column}}

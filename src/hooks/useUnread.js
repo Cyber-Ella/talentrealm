@@ -6,7 +6,7 @@ export function useUnread(uid) {
 
   useEffect(() => {
     if (!uid) return;
-    return watchNotifications(uid, (list) => setCount(list.filter((n) => !n.read).length));
+    return watchNotifications(uid, (list) => setCount(list.filter((n) => !n.read).length), (error) => console.error("Notification listener failed", error));
   }, [uid]);
 
   return uid ? count : 0;

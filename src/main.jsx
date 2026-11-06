@@ -22,3 +22,4 @@ createRoot(document.getElementById("root")).render(
 );
 
 import "./styles/phase1-rest.css";
+import "./styles/phase1-rest.css";
