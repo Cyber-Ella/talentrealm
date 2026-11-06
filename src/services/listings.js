@@ -1,10 +1,13 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
+  where,
 } from "firebase/firestore";
 
 import { db } from "./firebase";
@@ -73,4 +76,31 @@ export async function getListing(id) {
 
 export async function getMyListings(uid) {
   return (await getListings()).filter((l) => l.ownerId === uid);
+}
+
+export async function deleteListing(id, uid) {
+  const ref = doc(db, "listings", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+
+  if (snap.data().ownerId !== uid) {
+    throw new Error("You can only delete your own listings.");
+  }
+
+  // Don't let someone delete a listing that is part of an unfinished exchange.
+  const open = ["pending_approval", "accepted", "in_progress", "awaiting_confirmation"];
+  const mine = await getDocs(
+    query(collection(db, "exchanges"), where("participants", "array-contains", uid)),
+  );
+  const inUse = mine.docs.some((d) => {
+    const x = d.data();
+    return open.includes(x.status) && (x.items || []).some((i) => i.listingId === id);
+  });
+  if (inUse) {
+    throw new Error(
+      "This listing is part of an exchange that is still open. Finish or cancel the exchange first.",
+    );
+  }
+
+  await deleteDoc(ref);
 }

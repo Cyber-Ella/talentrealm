@@ -3,7 +3,7 @@ import { db } from "./firebase";
 import { suggestMatches } from "./gemini";
 
 export async function findMatches(myId) {
-  const snap = await getDocs(collection(db, "users"));
+  const snap = await getDocs(collection(db, "publicProfiles"));
   const people = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const me = people.find((p) => p.id === myId);
   if (!me) throw new Error("User not found: " + myId);

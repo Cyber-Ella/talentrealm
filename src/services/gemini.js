@@ -363,7 +363,7 @@ const listingMatchModel = getGenerativeModel(ai, {
 });
 
 export async function rankListingMatches({ need, offeredListing, listings, uid }) {
-  const usersSnap = await getDocs(collection(db, "users"));
+  const usersSnap = await getDocs(collection(db, "publicProfiles"));
   const usersById = Object.fromEntries(usersSnap.docs.map((d) => [d.id, d.data()]));
   const candidates = listings
     .filter((l) => l.ownerId !== uid && ["service", "product"].includes(l.type))

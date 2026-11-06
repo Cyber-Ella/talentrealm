@@ -9,6 +9,7 @@ import { getProfile, saveProfile } from "../../services/profile";
 
 import RefineWithGemini from "../../components/RefineWithGemini";
 import ProfilePhotoUploader from "../../components/ProfilePhotoUploader";
+import MyListings from "../../components/MyListings";
 
 const toList = (s) =>
   s.split(",").map((x) => x.trim()).filter(Boolean);
@@ -334,7 +335,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Portfolio */}
+      {/* Portfolio
       <section className="tr-profile-portfolio">
         <div>
           <span className="tr-eyebrow">YOUR CREATIVE SPACE</span>
@@ -365,7 +366,8 @@ export default function ProfilePage() {
             </article>)}
           </div>
         ) : <div className="tr-profile-portfolio-placeholder"><span>✳</span><p>Your portfolio is ready for its first project.</p></div>}
-      </section>
+      </section> */}
+      <MyListings />
     </main>
   );
 }

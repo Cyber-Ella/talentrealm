@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getListings } from "../services/listings";
 import ListingCard from "../components/ListingCard";
+import MatchSpotlight from "../components/MatchSpotlight";
+import { SkeletonGrid } from "../components/Skeleton";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -65,6 +67,7 @@ export default function HomePage() {
         </Link>
       </section>
 
+      <MatchSpotlight />
       {/* Search */}
       <section className="tr-dashboard-search">
         <div>
@@ -167,9 +170,7 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <div className="tr-dashboard-empty">
-            Finding talents in your realm...
-          </div>
+          <SkeletonGrid count={4} />
         ) : people.length === 0 ? (
           <div className="tr-dashboard-empty">
             <h3>Your community is waiting.</h3>

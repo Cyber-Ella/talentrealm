@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { getListing, getMyListings } from "../../services/listings";
+import { getListing, getMyListings, deleteListing } from "../../services/listings";
 import { proposeExchange } from "../../services/exchanges";
 
 export default function ListingDetails() {
@@ -13,6 +13,7 @@ export default function ListingDetails() {
   const [pick, setPick] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     getListing(id).then(setL);
@@ -49,6 +50,18 @@ export default function ListingDetails() {
     }
   };
 
+  const remove = async () => {
+    setBusy(true);
+    setMsg("");
+    try {
+      await deleteListing(l.id, user.uid);
+      navigate("/profile");
+    } catch (e) {
+      setMsg(e.message);
+      setBusy(false);
+    }
+  };
+
   return (
     <div>
       <h1>{l.title}</h1>
@@ -57,7 +70,6 @@ export default function ListingDetails() {
         {l.ownerName} · {l.category}
       </p>
 
-      {/* Portfolio image gallery */}
       {imageUrls.length > 0 && (
         <div className="listing-gallery">
           {imageUrls.map((url, index) => (
@@ -83,14 +95,40 @@ export default function ListingDetails() {
         </strong>
       </p>
 
-      {isMine && <div className="card">This is your listing.</div>}
+      {isMine && (
+        <div className="card">
+          <strong>This is your listing.</strong>
 
-      {!isMine && ["service", "product"].includes(l.type) && (
+          {!confirming ? (
+            <button
+              className="btn btn-outline"
+              style={{ marginTop: 12 }}
+              onClick={() => setConfirming(true)}
+            >
+              Delete this listing
+            </button>
+          ) : (
+            <div className="xp-confirm" role="alertdialog" aria-label="Confirm delete" style={{ marginTop: 12 }}>
+              <p>Delete this listing for good? This can't be undone.</p>
+              <button className="btn" onClick={remove} disabled={busy}>
+                {busy ? "Deleting…" : "Yes, delete it"}
+              </button>
+              <button className="btn btn-outline" onClick={() => setConfirming(false)} disabled={busy}>
+                Keep it
+              </button>
+            </div>
+          )}
+
+          {msg && <p>{msg}</p>}
+        </div>
+      )}
+
+      {!isMine && l.type === "service" && (
         <div className="card">
           <strong>Propose an exchange</strong>
 
           <p className="muted" style={{ margin: "4px 0 12px" }}>
-            Trade one of your services or products for this one.
+            Trade one of your services for this one.
           </p>
 
           {mine.length === 0 ? (

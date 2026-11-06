@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "emulators:start": "firebase emulators:start --only auth,firestore,functions",
+    "emulators:exec": "firebase emulators:exec --only auth,firestore,functions",
+    "test:rules": "node --test tests/firestore.rules.test.js",
+    "test:phase0": "node --check functions/index.js && npm run test:rules"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -19,12 +23,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
+    "firebase-tools": "^15.34.2",
     "globals": "^17.13.0",
     "vite": "^8.3.5"
   }
