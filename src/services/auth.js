@@ -32,6 +32,17 @@ export async function signUp({
     createdAt: serverTimestamp(),
   });
 
+  // Public, discoverable copy: this is where other students (matches, circles) read the name from.
+  await setDoc(doc(db, "publicProfiles", cred.user.uid), {
+    name,
+    department,
+    level,
+    interests,
+    offers: [],
+    needs: [],
+    createdAt: serverTimestamp(),
+  });
+
   return cred.user;
 }
 

@@ -1,5 +1,6 @@
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
+import { studentName, nameFromEmail } from "./names";
 
 // Only these fields are allowed to cross into the public discovery document.
 // Email and account/security fields intentionally stay in users/{uid}.
@@ -42,4 +43,16 @@ export function watchProfile(uid, callback, onError = () => {}) {
 export function watchPublicProfile(uid, callback, onError = () => {}) {
   if (!uid) return () => {};
   return onSnapshot(doc(db, "publicProfiles", uid), (snap) => callback(snap.exists() ? { id: snap.id, ...snap.data() } : null), onError);
+}
+
+// Repairs accounts whose public profile has no real name (older signups or the old placeholder),
+// so matches and circles show the student's name.
+export async function ensurePublicName(user) {
+  if (!user?.uid) return;
+  const pub = await getDoc(doc(db, "publicProfiles", user.uid));
+  if (pub.exists() && studentName(pub.data().name) !== "Student") return;
+  const priv = await getDoc(doc(db, "users", user.uid));
+  const name = studentName(user.displayName, priv.data()?.name, nameFromEmail(user.email));
+  if (name === "Student") return;
+  await setDoc(doc(db, "publicProfiles", user.uid), { name }, { merge: true });
 }
