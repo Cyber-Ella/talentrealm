@@ -7,6 +7,7 @@ import App from "./App";
 import "./styles/tokens.css";
 import "./index.css";
 import "./styles/experience.css";
+import "./styles/phase1-social.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -19,3 +20,5 @@ createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </StrictMode>,
 );
+
+import "./styles/phase1-rest.css";
