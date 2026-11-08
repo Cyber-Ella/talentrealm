@@ -1,3 +1,4 @@
+import { firstName } from "../services/names";
 import { useId } from "react";
 import { photoFor } from "./Avatar";
 
@@ -8,7 +9,7 @@ const POS = [
   { x: 70, y: 176 },
 ];
 
-const first = (n) => String(n || "Student").trim().split(" ")[0];
+const first = (n) => firstName(n);
 
 function geometry(a, b, centre) {
   const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);

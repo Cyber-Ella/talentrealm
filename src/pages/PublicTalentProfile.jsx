@@ -1,3 +1,4 @@
+import { studentName } from "../services/names";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getListing } from "../services/listings";
@@ -46,7 +47,7 @@ export default function PublicTalentProfile() {
         </p>
         <h1>{listing.title}</h1>
         <p className="ptp-owner">
-          Shared by <strong>{listing.ownerName || "TalentRealm member"}</strong>
+          Shared by <strong>{studentName(listing.ownerName)}</strong>
         </p>
         <p className="ptp-description">{listing.description || "A student creator sharing what they do best. Join TalentRealm to connect, collaborate or support their work."}</p>
         <div className="ptp-meta-row">

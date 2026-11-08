@@ -1,3 +1,4 @@
+import { studentName } from "../../services/names";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -91,9 +92,9 @@ export default function ListingDetails() {
       <p className="muted">{l.category}</p>
 
       <section className="card" style={{ display: "flex", gap: 14, alignItems: "center", margin: "16px 0" }}>
-        {ownerProfile?.photoURL ? <img src={ownerProfile.photoURL} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover" }} /> : <div aria-hidden="true" style={{ width: 64, height: 64, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--color-surface, #eee)", fontSize: 22 }}>{(ownerProfile?.name || l.ownerName || "T").slice(0,1).toUpperCase()}</div>}
+        {ownerProfile?.photoURL ? <img src={ownerProfile.photoURL} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover" }} /> : <div aria-hidden="true" style={{ width: 64, height: 64, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--color-surface, #eee)", fontSize: 22 }}>{studentName(ownerProfile?.name, l.ownerName).slice(0,1).toUpperCase()}</div>}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <strong>{ownerProfile?.name || l.ownerName || "TalentRealm member"}</strong>
+          <strong>{studentName(ownerProfile?.name, l.ownerName)}</strong>
           <p className="muted" style={{ margin: "4px 0" }}>{ownerProfile?.department || "UNIZIK student"}{ownerProfile?.level ? ` · ${ownerProfile.level} Level` : ""}</p>
           {ownerProfile?.bio && <p style={{ margin: "4px 0", fontSize: "0.9rem" }}>{ownerProfile.bio}</p>}
           <Link to={`/students/${l.ownerId}`}>View full profile ↗</Link>

@@ -1,3 +1,4 @@
+import { firstName, studentName } from "../../services/names";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -26,7 +27,7 @@ export default function ProposeExchange() {
     }
   };
 
-  const nm = (id) => found.people[id]?.name?.split(" ")[0] || "Student";
+  const nm = (id) => firstName(found.people[id]?.name);
   const leg = (l) =>
     `${l.providerId === user.uid ? "You give" : nm(l.providerId) + " gives"} ${l.offer} to ${l.receiverId === user.uid ? "you" : nm(l.receiverId)}`;
 
@@ -36,7 +37,7 @@ export default function ProposeExchange() {
     try {
       const id = await proposeExchange({
         proposer: { uid: user.uid, name: user.displayName },
-        receiver: { uid: a.receiverId, name: found.people[a.receiverId]?.name || "Student" },
+        receiver: { uid: a.receiverId, name: studentName(found.people[a.receiverId]?.name) },
         offered: { title: a.offer },
         requested: { title: b.offer },
       });
@@ -72,6 +73,13 @@ export default function ProposeExchange() {
 
       {found && (
         <div>
+          <section className="card" style={{margin:"18px 0",padding:16,borderLeft:"4px solid var(--primary,#9870f8)"}}>
+            <strong>How matching works</strong>
+            <p className="muted" style={{margin:"6px 0 0"}}>We compare your offers and needs with other students. A direct swap means you both get something you need; a circle connects three people when a direct trade is not possible. Every proposal still needs everyone's approval.</p>
+          </section>
+          {found.direct.length===0 && found.circles.length===0 && <section className="card" style={{padding:18}}>
+            <h3>No compatible swap found yet</h3><p className="muted">Try adding specific offers and needs to your profile (for example, “product photography” rather than “creative work”). Matching improves as more students join.</p><Link className="btn" to="/profile">Update my skills ↗</Link>
+          </section>}
           <h2>3-person circles ({found.circles.length})</h2>
           {found.circles.length === 0 && <p className="muted">No circle yet.</p>}
           {found.circles.map((c, i) => (

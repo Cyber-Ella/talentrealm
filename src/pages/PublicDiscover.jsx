@@ -1,3 +1,4 @@
+import { studentName } from "../services/names";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { watchListings } from "../services/listings";
@@ -126,7 +127,7 @@ export default function PublicDiscover() {
                   to={l.id.startsWith("sample") ? "/signup" : `/talent/${l.id}`}
                   className="pd-card"
                   key={l.id}
-                  aria-label={`${l.title} by ${l.ownerName || "TalentRealm member"}`}
+                  aria-label={`${l.title} by ${studentName(l.ownerName)}`}
                 >
                   <div className="pd-card-image">
                     {image ? (
@@ -149,7 +150,7 @@ export default function PublicDiscover() {
                     </p>
                     <div className="pd-card-owner">
                       <img src={photoFor(l.ownerName)} alt="" />
-                      <span>{l.ownerName || "TalentRealm member"}</span>
+                      <span>{studentName(l.ownerName)}</span>
                       <i>
                         {Number(l.price) > 0
                           ? `₦${Number(l.price).toLocaleString()}`

@@ -2,6 +2,7 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, where, updateDoc, onSnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { studentName } from "./names";
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -43,9 +44,13 @@ export async function createListing(data, imageFiles = []) {
   if (imageFiles.length > MAX_IMAGES) throw new Error(`Upload no more than ${MAX_IMAGES} images.`);
   const imageUrls = [];
   for (const file of imageFiles) imageUrls.push(await uploadImageToCloudinary(file));
+  let ownerName = studentName(cleanText(valid.ownerName, 100));
+  if (ownerName === "Student") {
+    try { ownerName = studentName((await getDoc(doc(db, "publicProfiles", valid.ownerId))).data()?.name); } catch { /* keep fallback */ }
+  }
   const ref = await addDoc(collection(db, "listings"), {
     ownerId: valid.ownerId,
-    ownerName: cleanText(valid.ownerName, 100) || "TalentRealm member",
+    ownerName,
     type: valid.type,
     title: valid.title,
     description: valid.description,
