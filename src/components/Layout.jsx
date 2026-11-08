@@ -14,19 +14,18 @@ const icons = {
   bookmark: <Glyph><path d="M6 3h12v18l-6-4-6 4z"/></Glyph>,
   settings: <Glyph><circle cx="12" cy="12" r="3"/><path d="m19 13 2 1-2 4-2-1-2 1v2H9v-2l-2-1-2 1-2-4 2-1V11l-2-1 2-4 2 1 2-1V4h4v2l2 1 2-1 2 4-2 1z"/></Glyph>,
 };
-const LINKS = [["/", "Feed", "home"],["/browse", "Explore", "discover"],["/exchanges/new", "Find matches", "discover"],["/exchanges", "Exchanges", "exchange"],["/notifications", "Notifications", "bell"],["/profile", "My Profile", "profile"]];
+const LINKS = [["/", "Feed", "home"],["/browse", "Explore", "discover"],["/exchanges", "Exchanges", "exchange"],["/notifications", "Notifications", "bell"],["/profile", "My Profile", "profile"]];
 const Badge = ({n}) => n>0?<span className="tr-count">{n>9?"9+":n}</span>:null;
 function SideLink({to,label,icon,count}) { return <NavLink to={to} className={({isActive})=>`tr-side-link ${isActive?"active":""}`}>{icons[icon]}<span>{label}</span><Badge n={count||0}/></NavLink>; }
 export default function Layout(){
  const {user,logout}=useAuth(); const unread=useUnread(user?.uid); const location=useLocation();
- const name=user?.displayName||"Talent explorer"; const initials=name.split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();
  return <div className="tr-social-shell">
   <header className="tr-social-topbar"><Link to="/" className="tr-social-brand"><span className="tr-brand-mark">T</span><span>Talent<span>Realm</span></span></Link>
    <nav className="tr-top-links"><NavLink to="/">⌂ <span>Home</span></NavLink><NavLink to="/browse">⌕ <span>Explore</span></NavLink><NavLink to="/exchanges">⇄ <span>Exchanges</span></NavLink><NavLink to="/notifications">♧ <span>Activity</span><Badge n={unread}/></NavLink></nav>
-   <div className="tr-top-tools"><Link to="/browse" className="tr-top-search">⌕ <span>Search talents, skills…</span></Link><ThemeToggle/><button className="tr-user-menu" onClick={logout} title="Log out"><span className="tr-mini-avatar">{initials}</span><span className="tr-user-name">{name.split(" ")[0]}</span><small>⌄</small></button></div>
+   <div className="tr-top-tools"><Link to="/browse" className="tr-top-search">⌕ <span>Search talents, skills…</span></Link><ThemeToggle/><Link to="/profile" className="tr-user-menu" title="My profile" aria-label="My profile">{icons.profile}<span className="tr-user-name">Profile</span></Link><button type="button" className="tr-user-menu tr-logout-button" onClick={logout} title="Log out" aria-label="Log out"><span aria-hidden="true">↪</span><span className="tr-user-name">Log out</span></button></div>
   </header>
   <div className="tr-social-layout">
-   <aside className="tr-social-left"><div className="tr-sidebar-label">YOUR SPACE</div><SideLink to="/" label="Feed" icon="home"/><SideLink to="/browse" label="Explore talents" icon="discover"/><SideLink to="/exchanges/new" label="Find my match" icon="discover"/><SideLink to="/exchanges" label="Exchanges" icon="exchange"/><SideLink to="/notifications" label="Notifications" icon="bell" count={unread}/><SideLink to="/profile" label="My profile" icon="profile"/><Link to="/profile" className="tr-sidebar-extra">▣ Saved talents</Link><Link to="/profile" className="tr-sidebar-extra">⚙ Settings</Link>
+   <aside className="tr-social-left"><div className="tr-sidebar-label">YOUR SPACE</div><SideLink to="/" label="Feed" icon="home"/><SideLink to="/browse" label="Explore talents" icon="discover"/><SideLink to="/exchanges" label="Exchanges" icon="exchange"/><SideLink to="/notifications" label="Notifications" icon="bell" count={unread}/><SideLink to="/profile" label="My profile" icon="profile"/><Link to="/profile" className="tr-sidebar-extra">▣ Saved talents</Link><Link to="/profile" className="tr-sidebar-extra">⚙ Settings</Link>
     <Link to="/listings/new" className="tr-create-post">＋ Create a post</Link>
     <div className="tr-sidebar-label tr-shortcuts-label">YOUR SHORTCUTS</div><Link to="/browse" className="tr-shortcut"><span className="tr-shortcut-icon">✦</span> Photography <i/></Link><Link to="/browse" className="tr-shortcut"><span className="tr-shortcut-icon">⌘</span> Tech & coding <i/></Link><Link to="/browse" className="tr-shortcut"><span className="tr-shortcut-icon">✧</span> Fashion & design <i/></Link><Link to="/browse" className="tr-shortcut"><span className="tr-shortcut-icon">◉</span> Beauty <i/></Link>
     <div className="tr-sidebar-promo"><b>Your talent deserves a stage.</b><p>Build your profile and let the campus discover what you do.</p><Link to="/profile">Complete profile ↗</Link></div>
@@ -38,6 +37,6 @@ export default function Layout(){
     <footer className="tr-social-footer">About · Guidelines · Help<br/>© TalentRealm · UNIZIK</footer>
    </aside>
   </div>
-  <nav className="tr-social-mobile">{LINKS.slice(0,4).map(([to,label,icon])=><NavLink key={to} to={to}>{icons[icon]}<span>{label}</span></NavLink>)}</nav>
+  <nav className="tr-social-mobile" aria-label="Mobile navigation">{LINKS.map(([to,label,icon])=><NavLink key={to} to={to} end={to==="/"}>{icons[icon]}<span>{label}</span>{to==="/notifications"&&<Badge n={unread}/>}</NavLink>)}</nav>
  </div>;
 }
