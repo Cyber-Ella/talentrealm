@@ -1,3 +1,4 @@
+import { studentName } from "./names";
 import {
   addDoc, collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, updateDoc, where,
 } from "firebase/firestore";
@@ -13,7 +14,8 @@ const clean = (v, max = 160) => String(v ?? "").trim().slice(0, max);
 const now = () => Date.now();
 const profileName = async (id, fallback = "Student") => {
   const snap = await getDoc(doc(db, "publicProfiles", id));
-  return clean(snap.data()?.name, 80) || fallback;
+  const n = studentName(snap.data()?.name);
+  return n === "Student" ? fallback : clean(n, 80);
 };
 const listingById = async (id) => {
   if (!id) return null;
@@ -51,10 +53,17 @@ const readExchange = async (id) => {
   if (!ex.participants?.includes(uid())) throw new Error("You are not a participant.");
   return ex;
 };
+
 const patchExchange = async (id, patch, actor, action, details = {}) => {
   await updateDoc(exchangeRef(id), { ...patch, updatedAt: now() });
-  await event(id, actor, action, details);
+
+  try {
+    await event(id, actor, action, details);
+  } catch (err) {
+    console.error("[Exchange] Event logging failed:", err);
+  }
 };
+
 
 export async function proposeExchange({ receiver, offered, requested }) {
   const me = uid(), receiverUid = receiver?.uid;
@@ -80,8 +89,28 @@ export async function proposeExchange({ receiver, offered, requested }) {
     topUp: { amount: Math.abs(a - b), payerId: a > b ? me : receiverUid, payeeId: a > b ? receiverUid : me, status: "suggested" },
     approvals: { [me]: "accepted", [receiverUid]: "pending" }, createdBy: me, createdAt: now(), updatedAt: now(),
   });
-  await event(exchangeId, me, "proposed");
-  await notify(exchangeId, receiverUid, me, "exchange_proposed", "New exchange proposal", `${myName} proposed an exchange with you.`);
+  
+  // The exchange has already been created successfully.
+  // Activity/notification failures must not invalidate the proposal.
+  try {
+    await event(exchangeId, me, "proposed");
+  } catch (err) {
+    console.error("[Exchange] Event logging failed:", err);
+  }
+
+  try {
+    await notify(
+      exchangeId,
+      receiverUid,
+      me,
+      "exchange_proposed",
+      "New exchange proposal",
+      `${myName} proposed an exchange with you.`
+    );
+  } catch (err) {
+    console.error("[Exchange] Notification failed:", err);
+  }
+
   return exchangeId;
 }
 
@@ -111,7 +140,20 @@ export async function respondToExchange(exchangeId, _uid, answer) {
   const approvals = { ...ex.approvals, [me]: answer };
   const status = answer === "declined" ? "cancelled" : ex.participants.every((p) => approvals[p] === "accepted") ? "awaiting_arrangement" : "pending_approval";
   await patchExchange(exchangeId, { approvals, status }, me, answer);
-  await notifyOthers(exchangeId, ex, me, answer === "accepted" ? "exchange_accepted" : "exchange_declined", answer === "accepted" ? "Exchange accepted" : "Exchange declined", `${ex.participantNames?.[me] || "A participant"} ${answer} the exchange proposal.`);
+  
+try {
+  await notifyOthers(
+    exchangeId,
+    ex,
+    me,
+    answer === "accepted" ? "exchange_accepted" : "exchange_declined",
+    answer === "accepted" ? "Exchange accepted" : "Exchange declined",
+    `${ex.participantNames?.[me] || "A participant"} ${answer} the exchange proposal.`
+  );
+} catch (err) {
+  console.error("[Exchange] Acceptance notification failed:", err);
+}
+
   if (status === "accepted" && ex.requestId) {
     const requestSnap = await getDoc(doc(db, "exchangeRequests", ex.requestId));
     if (requestSnap.exists() && requestSnap.data().ownerId === me) {

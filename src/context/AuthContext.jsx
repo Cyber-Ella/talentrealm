@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
+import { ensurePublicName } from "../services/profile";
 
 const AuthContext = createContext(null);
 
@@ -13,6 +14,7 @@ export function AuthProvider({ children }) {
     const stop = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
+      if (u) ensurePublicName(u).catch((e) => console.warn("Could not sync public name", e));
     });
 
     return stop;

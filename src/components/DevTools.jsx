@@ -1,3 +1,4 @@
+import { firstName } from "../services/names";
 import { useState } from "react";
 import { seedDemoUsers, DEMO_USERS } from "../services/seed";
 import { findMatches } from "../services/matching";
@@ -58,7 +59,7 @@ export default function DevTools() {
     }
   };
 
-  const name = (id) => found?.people[id]?.name?.split(" ")[0] || id;
+  const name = (id) => firstName(found?.people[id]?.name);
   const legText = (l) =>
     `${name(l.providerId)} gives ${l.offer} to ${name(l.receiverId)}`;
 

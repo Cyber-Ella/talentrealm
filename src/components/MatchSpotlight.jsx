@@ -1,3 +1,4 @@
+import { firstName } from "../services/names";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -5,7 +6,7 @@ import { findCircles } from "../services/circles";
 import CircleReveal from "./CircleReveal";
 import Skeleton from "./Skeleton";
 
-const first = (n) => String(n || "Student").trim().split(" ")[0];
+const first = (n) => firstName(n);
 
 export default function MatchSpotlight() {
   const { user } = useAuth();

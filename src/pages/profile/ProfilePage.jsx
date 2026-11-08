@@ -1,4 +1,5 @@
 
+import { studentName, nameFromEmail } from "../../services/names";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { updateProfile } from "firebase/auth";
@@ -121,7 +122,7 @@ export default function ProfilePage() {
     return <div className="tr-profile-loading">Loading your profile...</div>;
   }
 
-  const name = user.displayName || "TalentRealm Member";
+  const name = studentName(user.displayName, p.name, nameFromEmail(user.email));
 
   const initials = name
     .split(" ")

@@ -1,3 +1,4 @@
+import { firstName } from "../../services/names";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -41,7 +42,7 @@ export default function ExchangeDetails() {
   if (ex === null) return <p>Exchange not found.</p>;
 
   const uid = user.uid;
-  const first = (u) => (ex.participantNames?.[u] || "Student").split(" ")[0];
+  const first = (u) => firstName(ex.participantNames?.[u]);
   const who = (u) => (u === uid ? "You" : first(u));
   const toWho = (u) => (u === uid ? "you" : first(u));
   const verb = (u) => (u === uid ? "give" : "gives");

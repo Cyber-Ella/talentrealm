@@ -1,3 +1,4 @@
+import { studentName } from "../services/names";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { photoFor } from "./Avatar";
@@ -54,7 +55,7 @@ export default function ListingCard({ l }) {
         <div className="lcard-owner">
           {avatar && <img src={avatar} alt="" className="lcard-avatar" />}
 
-          <span>{l.ownerName || "TalentRealm member"}</span>
+          <span>{studentName(l.ownerName)}</span>
         </div>
 
         <div className="lcard-footer">
